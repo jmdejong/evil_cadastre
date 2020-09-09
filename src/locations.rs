@@ -6,11 +6,8 @@ use crate::{
 };
 
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct Pos {
-	pub x: i32,
-	pub y: i32
-}
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+pub struct Pos (pub i32, pub i32);
 
 impl FromStr for Pos {
 	type Err = ParseError;
@@ -23,7 +20,7 @@ impl FromStr for Pos {
 		let x_fromstr = coords[0].parse::<i32>().map_err(|e|parse_err!("Invalid Position '{}': {}", s, e.to_string()))?;
 		let y_fromstr = coords[1].parse::<i32>().map_err(|e|parse_err!("Invalid Position '{}': {}", s, e.to_string()))?;
 
-		Ok(Pos { x: x_fromstr, y: y_fromstr })
+		Ok(Pos(x_fromstr, y_fromstr))
 	}
 }
 

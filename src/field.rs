@@ -70,6 +70,7 @@ impl Field {
 				positions.push(Pos(x, y));
 			}
 		}
+		positions.sort_by_key(|p| p.distance_to(pos));
 		positions
 	}
 	
@@ -83,14 +84,14 @@ impl Field {
 		resources
 	}
 	
-	fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
+	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
 		for pos in self.tiles_in_plot(source_pos) {
 			if self.get(pos) == from {
 				self.set(pos, to);
 				return true;
 			}
 		}
-		return false;
+		false
 	}
 	
 	fn change_stockpile(&mut self, pos: Pos, from: Option<Resource>, to: Option<Resource>) -> bool {
@@ -117,5 +118,15 @@ impl Field {
 			pos = pos + dt;
 		}
 		lane
+	}
+	
+	pub fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
+		if self.available_resources(pos).can_afford(cost) {
+			for res in cost.to_vec() {
+				self.take_resource(pos, res);
+			}
+			return true;
+		}
+		false
 	}
 }

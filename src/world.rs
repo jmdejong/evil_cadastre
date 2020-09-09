@@ -4,7 +4,7 @@ use crate::{
 	commands::{Command, Action},
 	UserId,
 	entity::Entity,
-	resources::Resource
+	resources::{Resource, ResourceCount}
 };
 
 pub struct World {
@@ -72,10 +72,7 @@ impl World {
 		match (command.action.clone(), self.field.get(command.pos)) {
 			(Action::Build(building), None) => {
 				let (cost, ent) = building.cost_result();
-				if self.field.available_resources(command.pos).can_afford(&cost) {
-					for res in cost.to_vec() {
-						self.field.take_resource(command.pos, res);
-					}
+				if self.field.pay(command.pos, &cost) {
 					self.field.set_tile(command.pos, ent);
 				}
 			}
@@ -124,6 +121,11 @@ impl World {
 					}
 					Entity::Farm => {
 						self.field.add_resource(command.pos, Resource::Food);
+					}
+					Entity::Lair => {
+						if self.field.pay(command.pos, &ResourceCount::from_vec(&vec![Resource::Food, Resource::Food, Resource::Food])) {
+							self.field.change_tile(command.pos, None, Some(Entity::Raider));
+						}
 					}
 					_ => ()
 				}

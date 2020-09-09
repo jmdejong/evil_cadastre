@@ -12,53 +12,61 @@ pub struct Pos (pub i32, pub i32);
 
 pub type Size = Pos;
 
+
+impl Pos {
+	pub fn distance_to(self, other: Pos) -> i32 {
+		let d = other - self;
+		d.0.abs() + d.1.abs()
+	}
+}
+
 impl Add for Pos {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0, self.1 + other.1)
-    }
+	type Output = Self;
+	fn add(self, other: Self) -> Self {
+		Self(self.0 + other.0, self.1 + other.1)
+	}
 }
 impl Sub for Pos {
-    type Output = Self;
-    fn sub(self, other: Self) -> Self {
-        Self(self.0 - other.1, self.0 - other.1)
-    }
+	type Output = Self;
+	fn sub(self, other: Self) -> Self {
+		Self(self.0 - other.1, self.0 - other.1)
+	}
 }
 impl Div for Pos {
-    type Output = Self;
-    fn div(self, other: Self) -> Self {
-        Self(self.0 / other.0, self.1 / other.1)
-    }
+	type Output = Self;
+	fn div(self, other: Self) -> Self {
+		Self(self.0 / other.0, self.1 / other.1)
+	}
 }
 impl Div<i32> for Pos {
-    type Output = Self;
-    fn div(self, rhs: i32) -> Self::Output {
+	type Output = Self;
+	fn div(self, rhs: i32) -> Self::Output {
 		Self(self.0 / rhs, self.1 / rhs)
-    }
+	}
 }
 impl Rem for Pos {
-    type Output = Self;
-    fn rem(self, other: Self) -> Self {
-        Self(self.0 % other.0, self.1 % other.1)
-    }
+	type Output = Self;
+	fn rem(self, other: Self) -> Self {
+		Self(self.0 % other.0, self.1 % other.1)
+	}
 }
 impl Rem<i32> for Pos {
-    type Output = Self;
-    fn rem(self, rhs: i32) -> Self::Output {
+	type Output = Self;
+	fn rem(self, rhs: i32) -> Self::Output {
 		Self(self.0 % rhs, self.1 % rhs)
-    }
+	}
 }
 impl Mul for Pos {
-    type Output = Self;
-    fn mul(self, other: Self) -> Self {
-        Self(self.0 * other.0, self.1 * other.1)
-    }
+	type Output = Self;
+	fn mul(self, other: Self) -> Self {
+		Self(self.0 * other.0, self.1 * other.1)
+	}
 }
 impl Mul<i32> for Pos {
-    type Output = Self;
-    fn mul(self, rhs: i32) -> Self::Output {
+	type Output = Self;
+	fn mul(self, rhs: i32) -> Self::Output {
 		Self(self.0 * rhs, self.1 * rhs)
-    }
+	}
 }
 
 

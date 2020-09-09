@@ -3,7 +3,6 @@ use std::str::FromStr;
 use crate::{
 	Pos,
 	Direction,
-	buildings::Building,
 	partition,
 	errors::ParseError,
 	parse_err
@@ -17,12 +16,35 @@ pub struct PlayerCommand {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Action{
-	Build(Building),
+	Build(BuildingType),
 	Move(Pos),
 	Attack(Direction),
 	Remove,
 	Recruit
 }
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum BuildingType {
+	WoodCutter,
+	Farm,
+	GuardTower
+}
+
+
+
+impl FromStr for BuildingType {
+	type Err = ParseError;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(match s.to_lowercase().as_str() {
+			"woodcutter" => Self::WoodCutter,
+			"farm" => Self::Farm,
+			"guardtower" => Self::GuardTower,
+			_ => {return Err(parse_err!("Invalid building: '{}'", s))}
+		})
+	}
+}
+
 
 impl FromStr for Action {
 	type Err = ParseError;
@@ -30,7 +52,7 @@ impl FromStr for Action {
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		let (commtype, arg) = partition(s);
 		Ok(match commtype.to_lowercase().as_str() {
-			"build" => Self::Build(Building::from_str(&arg)?),
+			"build" => Self::Build(BuildingType::from_str(&arg)?),
 			"move" => Self::Move(Pos::from_str(&arg)?),
 			"attack" => Self::Attack(Direction::from_str(&arg)?),
 			"remove" => Self::Remove,

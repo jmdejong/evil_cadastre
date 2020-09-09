@@ -1,7 +1,6 @@
 
 mod input;
 mod locations;
-mod buildings;
 mod playercommand;
 mod user;
 mod game;

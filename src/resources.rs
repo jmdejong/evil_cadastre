@@ -42,7 +42,7 @@ impl ResourceCount {
 	pub fn to_vec(&self) -> Vec<Resource> {
 		let mut resvec = Vec::new();
 		for (res, amount) in self.resources.iter(){
-			for i in 0..*amount {
+			for _ in 0..*amount {
 				resvec.push(*res);
 			}
 		}

@@ -14,7 +14,7 @@ mod buildings;
 mod resources;
 
 use crate::{
-	locations::Pos,
+	locations::{Pos, Size},
 	user::UserId,
 	utils::{partition}
 };

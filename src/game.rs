@@ -8,7 +8,8 @@ use crate::{
 	commands::Command,
 	parser,
 	field::Field,
-	world::World
+	world::World,
+	Pos
 };
 
 
@@ -40,6 +41,6 @@ pub fn main(){
 			println!("{:?}", command);
 		}
 	}
-	let mut world = World::new(Field::new((10, 10), (5, 5)));
+	let mut world = World::new(Field::new(Pos(10, 10), Pos(5, 5)));
 	world.update(&all_commands);
 }

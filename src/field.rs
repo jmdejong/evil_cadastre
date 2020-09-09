@@ -3,39 +3,30 @@ use std::collections::HashMap;
 
 use crate::{
 	Pos,
+	Size,
 	locations::Direction,
 	entity::Entity,
 	resources::{Resource, ResourceCount},
 	UserId
 };
 
-// struct Plot{
-// 	pub owner: UserId,
-
-// pub struct Tile {
-// 	pub occupant: Option<Box<dyn Entity>>
-// }
-
 pub struct Field {
-	plot_size: (i32, i32),
-	size: (i32, i32),
+	plot_size: Size,
+	size: Size,
 	tiles: HashMap<Pos, Entity>
 }
 
 impl Field {
 
-	pub fn new(plot_size: (i32, i32), size: (i32, i32)) -> Field {
+	pub fn new(plot_size: Size, size: Size) -> Field {
 		Self {plot_size, size, tiles: HashMap::new()}
 	}
 	
 	fn keep_location(&self, pos: Pos) -> Pos {
-		let plot_idx = pos.0 / self.plot_size.0;
-		let plot_idy = pos.1 / self.plot_size.1;
-		let base_x = plot_idx * self.plot_size.0 + self.plot_size.0 / 2;
-		let base_y = plot_idy * self.plot_size.1 + self.plot_size.1 / 2;
-		let offset_x = (1 - self.plot_size.0 % 2) * -plot_idx % 2;
-		let offset_y = (1 - self.plot_size.1 % 2) * -plot_idy % 2;
-		Pos(base_x + offset_x, base_y + offset_y)
+		let plot = pos / self.plot_size;
+		let base = plot * self.plot_size + self.plot_size / 2;
+		let offset = (Pos(1, 1) - self.plot_size % 2) * plot % 2;
+		base - offset
 	}
 	
 	pub fn get(&self, pos: Pos) -> Option<Entity> {
@@ -73,10 +64,9 @@ impl Field {
 	
 	fn tiles_in_plot(&self, pos: Pos) -> Vec<Pos>{
 		let mut positions = Vec::new();
-		let plot_idx = pos.0 / self.plot_size.0;
-		let plot_idy = pos.1 / self.plot_size.1;
-		for x in plot_idx*self.plot_size.0 .. (plot_idx+1)*self.plot_size.0 {
-			for y in plot_idy*self.plot_size.1 .. (plot_idy+1)*self.plot_size.1 {
+		let plot = pos / self.plot_size;
+		for x in plot.0*self.plot_size.0 .. (plot.0+1)*self.plot_size.0 {
+			for y in plot.1*self.plot_size.1 .. (plot.1+1)*self.plot_size.1 {
 				positions.push(Pos(x, y));
 			}
 		}
@@ -95,7 +85,7 @@ impl Field {
 	
 	fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
 		for pos in self.tiles_in_plot(source_pos) {
-			if let from = self.get(pos) {
+			if self.get(pos) == from {
 				self.set(pos, to);
 				return true;
 			}
@@ -115,9 +105,17 @@ impl Field {
 		self.change_stockpile(pos, Some(res), None)
 	}
 	
-	pub fn neighbour_lane(&mut self, pos: Pos, dir: Direction) -> Vec<Pos> {
-		let lane = Vec::new();
-		// todo: search correct positions
+	pub fn neighbour_lane(&mut self, mut pos: Pos, dir: Direction) -> Vec<Pos> {
+		let mut lane = Vec::new();
+		let dt = dir.to_pos();
+		let neighbour = pos / self.plot_size + dt;
+		while pos / self.plot_size != neighbour {
+			pos = pos + dt;
+		}
+		while pos / self.plot_size == neighbour {
+			lane.push(pos);
+			pos = pos + dt;
+		}
 		lane
 	}
 }

@@ -212,10 +212,14 @@ mod tests {
 		($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos($x, $y)), $val)}
 	}
 	
+	fn parse_commands(u: &str, c: &[&str]) -> (UserId, Vec<Command>) {
+		(UserId(u.to_string()), c.iter().map(|s| Command::from_str(s).unwrap()).collect())
+	}
+	
 	#[test]
 	fn test_simple_commands() {
 		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10\n").unwrap()};
-		let commands: Vec<Command> = [
+		let (user, commands) = parse_commands("user", &[
 			"2,1 build stockpile",
 			"15,2 build woodcutter",
 			"6,2 build woodcutter",
@@ -230,8 +234,7 @@ mod tests {
 			"8,3 build stockpile",
 			"8,4 build stockpile",
 			"8,5 build stockpile"
-		].iter().map(|s| Command::from_str(s).unwrap()).collect();
-		let user = UserId("user".to_string());
+		]);
 		world.update(&vec![(user.clone(), commands)]);
 		assert_eq!(world.field.plot_owner(Pos(0,0)), Some(user.clone()));
 		assert_eq!(world.field.plot_owner(Pos(9,9)), Some(user.clone()));
@@ -252,7 +255,82 @@ mod tests {
 			2,1 stockpile;
 			6,2 woodcutter;
 			8,0 stockpile;
-			8,1 stockpile;
-			").unwrap());
+			8,1 stockpile;"
+		).unwrap());
+	}
+	
+	#[test]
+	fn test_woodcutting(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			0,5 woodcutter;
+			1,5 stockpile;
+			2,5 stockpile;
+			0,2 stockpile;
+			9,5 woodcutter;
+			10,5 stockpile;"
+		).unwrap()};
+		let (user, commands) = parse_commands("user", &[
+			"0,5 use",
+			"9,5 use"
+		]);
+		world.update(&vec![(user, commands)]);
+		
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			0,5 woodcutter;
+			1,5 stockpile:wood;
+			2,5 stockpile:wood;
+			0,2 stockpile;
+			9,5 woodcutter;
+			10,5 stockpile;"
+		).unwrap());
+	}
+	
+	#[test]
+	fn test_attack(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			6,6 lair;
+			1,9 raider;
+			3,3 woodcutter;
+			3,7 raider;
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap()};
+		world.update(&vec![
+			parse_commands("user", &[
+				"1,9 attack south",
+				"11,6 attack west"
+			]),
+			parse_commands("other", &[
+				"3,17 attack north",
+			])
+		]);
+		
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			6,6 lair;
+			1,9 raider;
+			3,3 woodcutter;
+			3,7 raider;
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap());
 	}
 }

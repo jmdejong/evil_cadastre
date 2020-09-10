@@ -30,9 +30,14 @@ impl Field {
 	
 	fn keep_location(&self, pos: Pos) -> Pos {
 		let plot = pos / self.plot_size;
-		let base = plot * self.plot_size + self.plot_size / 2;
-		let offset = (Pos(1, 1) - self.plot_size % 2) * plot % 2;
-		base - offset
+		let mut base = plot * self.plot_size + self.plot_size / 2;
+		if self.plot_size.0 % 2 == 0 {
+			base.0 -= plot.1%2;
+		}
+		if self.plot_size.1 % 2 == 0 {
+			base.1 -= plot.0%2;
+		}
+		base
 	}
 	
 	pub fn claim_first_keep(&mut self, source_pos: Pos, userid: UserId) -> Option<Pos> {
@@ -116,17 +121,10 @@ impl Field {
 		false
 	}
 	
-	fn change_stockpile(&mut self, pos: Pos, from: Option<Resource>, to: Option<Resource>) -> bool {
-		self.change_tile(pos, Some(Entity::Stockpile(from)), Some(Entity::Stockpile(to)))
-	}
-	
 	pub fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
-		self.change_stockpile(pos, None, Some(res))
+		self.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
 	}
 	
-	pub fn take_resource(&mut self, pos: Pos, res: Resource) -> bool {
-		self.change_stockpile(pos, Some(res), None)
-	}
 	
 	pub fn neighbour_lane(&mut self, mut pos: Pos, dir: Direction) -> Vec<Pos> {
 		let mut lane = Vec::new();
@@ -145,7 +143,7 @@ impl Field {
 	pub fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
 		if self.available_resources(pos).can_afford(cost) {
 			for res in cost.to_vec() {
-				self.take_resource(pos, res);
+				self.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
 			}
 			return true;
 		}
@@ -212,3 +210,19 @@ impl FromStr for Field {
 	}
 }
 
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	
+	
+	#[test]
+	fn test_tile_ordering(){
+		let field = Field::new(Pos(10,10), Pos(10,10));
+		let pos = Pos(6,7);
+		let tiles = field.tiles_in_plot(pos);
+		for i in 1..tiles.len() {
+			assert!(tiles[i].distance_to(pos) >= tiles[i-1].distance_to(pos));
+		}
+	}
+}

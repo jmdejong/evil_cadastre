@@ -30,7 +30,7 @@ impl Add for Pos {
 impl Sub for Pos {
 	type Output = Self;
 	fn sub(self, other: Self) -> Self {
-		Self(self.0 - other.1, self.0 - other.1)
+		Self(self.0 - other.0, self.1 - other.1)
 	}
 }
 impl Div for Pos {
@@ -139,4 +139,22 @@ impl FromStr for Direction {
 	}
 }
 
+#[cfg(test)]
+mod tests {
+	use super::*;
+	
+	#[test]
+	fn test_distance() {
+		assert_eq!(Pos(2, 3).distance_to(Pos(1, 5)), 3);
+	}
+	
+	#[test]
+	fn test_distance_symetry() {
+		for x in 0..22 {
+			for y in 0..22 {
+				assert_eq!(Pos(x, y).distance_to(Pos(1,1)), Pos(1,1).distance_to(Pos(x,y)));
+			}
+		}
+	}
+}
 

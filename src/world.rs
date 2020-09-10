@@ -104,10 +104,27 @@ impl World {
 			(user.clone(), utils::truncated(commands, data.ap_left as usize))
 		}).collect::<Vec<(UserId, Vec<Command>)>>());
 		for (user, command) in ordered.iter() {
+			// todo: make sure no 2 commands can run on the same unit/building in one update
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
 			self.run_command(user, command, data);
 		}
 		
+	}
+	
+	fn move_destination(&self, from: Pos, to: Pos) -> Option<Pos> {
+		let owner = self.field.plot_owner(from);
+		match self.field.get(to) {
+			Some(Entity::Road) => {
+				let pos = self.field.find(self.field.across_border(to)?, None)?;
+				if self.field.plot_owner(pos) == owner {
+					Some(pos)
+				} else {
+					None
+				}
+			}
+			Some(_) => None,
+			None => Some(to)
+		}
 	}
 	
 	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData) {
@@ -124,6 +141,9 @@ impl World {
 		
 		match (command.action.clone(), self.field.get(command.pos)) {
 			(Action::Build(building), None) => {
+				if building == BuildingType::Road && self.field.across_border(command.pos) == None {
+					return;
+				}
 				let (cost, ent) = building.cost_result();
 				if self.field.pay(command.pos, &cost){
 					self.field.set_tile(command.pos, ent);
@@ -135,15 +155,14 @@ impl World {
 			}
 			
 			(Action::Move(target), Some(ent)) => {
-				if self.field.get(target).is_some() {
-					return;
-				}
-				match ent {
-					Entity::Raider => {
-						self.field.clear_tile(command.pos);
-						self.field.set_tile(target, ent);
+				if let Some(pos) = self.move_destination(command.pos, target) {
+					match ent {
+						Entity::Raider => {
+							self.field.clear_tile(command.pos);
+							self.field.set_tile(pos, ent);
+						}
+						_ => {}
 					}
-					_ => {}
 				}
 			}
 			
@@ -209,7 +228,7 @@ mod tests {
 	use std::str::FromStr;
 	
 	macro_rules! tileis {
-		($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos($x, $y)), $val)}
+			($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos::new($x, $y)), $val)}
 	}
 	
 	fn parse_commands(u: &str, c: &[&str]) -> (UserId, Vec<Command>) {
@@ -236,11 +255,11 @@ mod tests {
 			"8,5 build stockpile"
 		]);
 		world.update(&vec![(user.clone(), commands)]);
-		assert_eq!(world.field.plot_owner(Pos(0,0)), Some(user.clone()));
-		assert_eq!(world.field.plot_owner(Pos(9,9)), Some(user.clone()));
-		assert_eq!(world.field.plot_owner(Pos(11,11)), None);
-		assert_eq!(world.field.plot_owner(Pos(1,11)), None);
-		assert_eq!(world.field.plot_owner(Pos(11,1)), None);
+		assert_eq!(world.field.plot_owner(Pos::new(0,0)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos::new(9,9)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos::new(11,11)), None);
+		assert_eq!(world.field.plot_owner(Pos::new(1,11)), None);
+		assert_eq!(world.field.plot_owner(Pos::new(11,1)), None);
 		tileis!(world, 2,1, Some(Entity::Stockpile(None)));
 		tileis!(world, 15,2, None);
 		tileis!(world, 6,2, Some(Entity::Woodcutter));
@@ -329,6 +348,86 @@ mod tests {
 			11,6 raider;
 			
 			4,15 keep:other;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap());
+	}
+	
+	
+	#[test]
+	fn test_move(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			1,1 raider;
+			1,2 raider;
+			1,3 raider;
+			1,4 raider;
+			1,5 raider;
+			1,6 raider;
+			1,7 raider;
+			1,8 raider;
+			1,9 raider;
+			2,1 raider;
+			7,7 stockpile;
+			9,9 road;
+			6,6 road;
+			2,9 road;
+			9,2 road;
+			0,1 road;
+			1,0 road;
+			
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap()};
+		world.update(&vec![
+			parse_commands("user", &[
+				"1,1 move 0,0",
+				"1,2 move 0,0",
+				"1,3 move 7,7",
+				"1,4 move 5,5",
+				
+				"1,5 move 6,6",
+				"1,6 move 9,9",
+				"1,7 move 9,2",
+				"1,8 move 2,9",
+				"1,0 move 1,0",
+				"2,1 move 0,1",
+			]),
+		]);
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			0,0 raider;
+			1,2 raider;
+			1,3 raider;
+			1,4 raider;
+			1,5 raider;
+			1,6 raider;
+			10,2 raider;
+			1,8 raider;
+			1,9 raider;
+			2,1 raider;
+			7,7 stockpile;
+			9,9 road;
+			6,6 road;
+			2,9 road;
+			9,2 road;
+			0,1 road;
+			1,0 road;
+			
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
 			3,17 raider;
 			3,16 farm;"
 		).unwrap());

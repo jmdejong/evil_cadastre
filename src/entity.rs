@@ -25,7 +25,8 @@ pub enum Entity {
 	Woodcutter,
 // 	GuardTower,
 	Lair,
-	Stockpile(Option<Resource>)
+	Stockpile(Option<Resource>),
+	Road
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,7 +53,8 @@ impl Entity {
 // 			Entity::Guardpost => EntityProperties{removable: true},
 			Entity::Lair => building,
 			Entity::Stockpile(_) => building,
-			Entity::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false}
+			Entity::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Entity::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false}
 		}
 	}
 }
@@ -68,7 +70,8 @@ impl fmt::Display for Entity {
 			Self::Lair => "lair".to_string(),
 			Self::Stockpile(Some(res)) => format!("stockpile:{}", res),
 			Self::Stockpile(None) => format!("stockpile"),
-			Self::Construction(building) => format!("construction:{}", building)
+			Self::Construction(building) => format!("construction:{}", building),
+			Self::Road => "road".to_string()
 		})
 	}
 }
@@ -90,6 +93,7 @@ impl FromStr for Entity {
 			("stockpile", None) => Self::Stockpile(None),
 			("stockpile", Some(res)) => Self::Stockpile(Some(Resource::from_str(res)?)),
 			("construction", Some(building)) => Self::Construction(BuildingType::from_str(building)?),
+			("road", None) => Self::Road,
 			_ => {return Err(parse_err!("Invalid entity '{}'", s))}
 		})
 	}

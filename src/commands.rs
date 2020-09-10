@@ -66,7 +66,7 @@ mod tests {
 	}
 	macro_rules! c {
 		($command: expr, ($x: expr, $y: expr), $action: expr) => {
-			a!($command, Ok(Command{pos: Pos($x, $y), action: $action}));
+			a!($command, Ok(Command{pos: Pos::new($x, $y), action: $action}));
 		}
 	}
 	
@@ -74,7 +74,7 @@ mod tests {
 	fn test_command_parsing() {
 		c!("0,0 build woodcutter", (0, 0), Action::Build(BuildingType::Woodcutter));
 		c!("3,3 build farm", (3, 3), Action::Build(BuildingType::Farm));
-		c!("3,5 move 3,0", (3, 5), Action::Move(Pos(3, 0)));
+		c!("3,5 move 3,0", (3, 5), Action::Move(Pos::new(3, 0)));
 		c!("-1,6 build farm", (-1, 6), Action::Build(BuildingType::Farm));
 		e!("1,1,1 build farm", "Position must be 2 integers separated by a comma. Found '1,1,1'");
 		e!("invalid build farm", "Position must be 2 integers separated by a comma. Found 'invalid'");

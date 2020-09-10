@@ -9,64 +9,72 @@ use crate::{
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct Pos (pub i32, pub i32);
+pub struct Pos {
+	pub x: i32,
+	pub y: i32
+}
 
 pub type Size = Pos;
 
 
 impl Pos {
+
+	pub fn new(x: i32, y: i32) -> Self {
+		Self {x, y}
+	}
+	
 	pub fn distance_to(self, other: Pos) -> i32 {
 		let d = other - self;
-		d.0.abs() + d.1.abs()
+		d.x.abs() + d.y.abs()
 	}
 }
 
 impl Add for Pos {
 	type Output = Self;
 	fn add(self, other: Self) -> Self {
-		Self(self.0 + other.0, self.1 + other.1)
+		Self::new(self.x + other.x, self.y + other.y)
 	}
 }
 impl Sub for Pos {
 	type Output = Self;
 	fn sub(self, other: Self) -> Self {
-		Self(self.0 - other.0, self.1 - other.1)
+		Self::new(self.x - other.x, self.y - other.y)
 	}
 }
 impl Div for Pos {
 	type Output = Self;
 	fn div(self, other: Self) -> Self {
-		Self(self.0 / other.0, self.1 / other.1)
+		Self::new(self.x / other.x, self.y / other.y)
 	}
 }
 impl Div<i32> for Pos {
 	type Output = Self;
 	fn div(self, rhs: i32) -> Self::Output {
-		Self(self.0 / rhs, self.1 / rhs)
+		Self::new(self.x / rhs, self.y / rhs)
 	}
 }
 impl Rem for Pos {
 	type Output = Self;
 	fn rem(self, other: Self) -> Self {
-		Self(self.0 % other.0, self.1 % other.1)
+		Self::new(self.x % other.x, self.y % other.y)
 	}
 }
 impl Rem<i32> for Pos {
 	type Output = Self;
 	fn rem(self, rhs: i32) -> Self::Output {
-		Self(self.0 % rhs, self.1 % rhs)
+		Self::new(self.x % rhs, self.y % rhs)
 	}
 }
 impl Mul for Pos {
 	type Output = Self;
 	fn mul(self, other: Self) -> Self {
-		Self(self.0 * other.0, self.1 * other.1)
+		Self::new(self.x * other.x, self.y * other.y)
 	}
 }
 impl Mul<i32> for Pos {
 	type Output = Self;
 	fn mul(self, rhs: i32) -> Self::Output {
-		Self(self.0 * rhs, self.1 * rhs)
+		Self::new(self.x * rhs, self.y * rhs)
 	}
 }
 
@@ -82,13 +90,13 @@ impl FromStr for Pos {
 		let x_fromstr = coords[0].parse::<i32>().map_err(|e|parse_err!("Invalid Position '{}': {}", s, e.to_string()))?;
 		let y_fromstr = coords[1].parse::<i32>().map_err(|e|parse_err!("Invalid Position '{}': {}", s, e.to_string()))?;
 
-		Ok(Pos(x_fromstr, y_fromstr))
+		Ok(Self::new(x_fromstr, y_fromstr))
 	}
 }
 
 impl fmt::Display for Pos {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{},{}", self.0, self.1)
+        write!(f, "{},{}", self.x, self.y)
     }
 }
 
@@ -105,11 +113,15 @@ pub enum Direction {
 impl Direction {
 	pub fn to_pos(&self) -> Pos {
 		match self {
-			Self::North => Pos(0, -1),
-			Self::South => Pos(0, 1),
-			Self::East => Pos(1, 0),
-			Self::West => Pos(-1, 0)
+			Self::North => Pos::new(0, -1),
+			Self::South => Pos::new(0, 1),
+			Self::East => Pos::new(1, 0),
+			Self::West => Pos::new(-1, 0)
 		}
+	}
+	
+	pub fn directions() -> Vec<Self> {
+		vec![Self::North, Self::South, Self::East, Self::West]
 	}
 }
 
@@ -145,14 +157,14 @@ mod tests {
 	
 	#[test]
 	fn test_distance() {
-		assert_eq!(Pos(2, 3).distance_to(Pos(1, 5)), 3);
+		assert_eq!(Pos::new(2, 3).distance_to(Pos::new(1, 5)), 3);
 	}
 	
 	#[test]
 	fn test_distance_symetry() {
 		for x in 0..22 {
 			for y in 0..22 {
-				assert_eq!(Pos(x, y).distance_to(Pos(1,1)), Pos(1,1).distance_to(Pos(x,y)));
+				assert_eq!(Pos::new(x, y).distance_to(Pos::new(1,1)), Pos::new(1,1).distance_to(Pos::new(x,y)));
 			}
 		}
 	}

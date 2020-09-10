@@ -31,16 +31,19 @@ impl Field {
 	fn keep_location(&self, pos: Pos) -> Pos {
 		let plot = pos / self.plot_size;
 		let mut base = plot * self.plot_size + self.plot_size / 2;
-		if self.plot_size.0 % 2 == 0 {
-			base.0 -= plot.1%2;
+		if self.plot_size.x % 2 == 0 {
+			base.x -= plot.y%2;
 		}
-		if self.plot_size.1 % 2 == 0 {
-			base.1 -= plot.0%2;
+		if self.plot_size.y % 2 == 0 {
+			base.y -= plot.x%2;
 		}
 		base
 	}
 	
 	pub fn claim_first_keep(&mut self, source_pos: Pos, userid: UserId) -> Option<Pos> {
+		if !self.is_valid(source_pos){
+			return None;
+		}
 		let pos = self.keep_location(source_pos);
 		match self.get(pos) {
 			Some(Entity::Keep(_)) => None,
@@ -89,9 +92,9 @@ impl Field {
 		let mut positions = Vec::new();
 		let plot = pos / self.plot_size;
 		let keep = self.keep_location(pos);
-		for x in plot.0*self.plot_size.0 .. (plot.0+1)*self.plot_size.0 {
-			for y in plot.1*self.plot_size.1 .. (plot.1+1)*self.plot_size.1 {
-				let tile = Pos(x, y);
+		for x in plot.x*self.plot_size.x .. (plot.x+1)*self.plot_size.x {
+			for y in plot.y*self.plot_size.y .. (plot.y+1)*self.plot_size.y {
+				let tile = Pos::new(x, y);
 				if tile != keep {
 					positions.push(tile);
 				}
@@ -111,14 +114,22 @@ impl Field {
 		resources
 	}
 	
-	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
+	pub fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
 		for pos in self.tiles_in_plot(source_pos) {
-			if self.get(pos) == from {
-				self.set(pos, to);
-				return true;
+			if self.get(pos) == ent {
+				return Some(pos);
 			}
 		}
-		false
+		None
+	}
+	
+	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
+		if let Some(pos) = self.find(source_pos, from){
+			self.set(pos, to);
+			true
+		} else {
+			false
+		}
 	}
 	
 	pub fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
@@ -152,12 +163,33 @@ impl Field {
 	
 	pub fn list_keeps(&self) -> Vec<Pos> {
 		let mut keeps = Vec::new();
-		for plot_x in 0..self.size.0 {
-			for plot_y in 0..self.size.1 {
-				keeps.push(self.keep_location(Pos(plot_x, plot_y) * self.plot_size));
+		for plot_x in 0..self.size.x {
+			for plot_y in 0..self.size.y {
+				keeps.push(self.keep_location(Pos::new(plot_x, plot_y) * self.plot_size));
 			}
 		}
 		keeps
+	}
+	
+	pub fn is_valid(&self, pos: Pos) -> bool {
+		let size = self.size * self.plot_size;
+		pos.x >= 0 && pos.y >=0 && pos.x < size.x && pos.y < size.y
+	}
+	
+	pub fn across_border(&self, pos: Pos) -> Option<Pos> {
+		let keep = self.keep_location(pos);
+		let mut crossings = vec![];
+		for dir in Direction::directions(){
+			let p = pos + dir.to_pos();
+			if self.keep_location(p) != keep {
+				crossings.push(p)
+			}
+		}
+		if crossings.len() == 1 {
+			Some(crossings[0])
+		} else {
+			None
+		}
 	}
 }
 
@@ -218,8 +250,8 @@ mod tests {
 	
 	#[test]
 	fn test_tile_ordering(){
-		let field = Field::new(Pos(10,10), Pos(10,10));
-		let pos = Pos(6,7);
+		let field = Field::new(Pos::new(10,10), Pos::new(10,10));
+		let pos = Pos::new(6,7);
 		let tiles = field.tiles_in_plot(pos);
 		for i in 1..tiles.len() {
 			assert!(tiles[i].distance_to(pos) >= tiles[i-1].distance_to(pos));

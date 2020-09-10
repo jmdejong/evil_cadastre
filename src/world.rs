@@ -34,9 +34,15 @@ impl UserData {
 }
 
 impl World {
-
+	
+	pub fn init(plot_size: Pos, size: Pos) -> World {
+		let mut field = Field::new(plot_size, size);
+		field.plant_ambience();
+		Self::new(field)
+	}
+	
 	pub fn new(field: Field) -> World{
-		Self {field}
+		Self{field}
 	}
 	
 	fn calculate_user_data(&self) -> HashMap<UserId, UserData> {
@@ -112,16 +118,11 @@ impl World {
 	}
 	
 	fn move_destination(&self, from: Pos, to: Pos) -> Option<Pos> {
-		let owner = self.field.plot_owner(from);
+		if self.field.keep_location(from) != self.field.keep_location(to) {
+			return None;
+		}
 		match self.field.get(to) {
-			Some(Entity::Road) => {
-				let pos = self.field.find(self.field.across_border(to)?, None)?;
-				if self.field.plot_owner(pos) == owner {
-					Some(pos)
-				} else {
-					None
-				}
-			}
+			Some(Entity::Road) => self.field.cross_pos(to),
 			Some(_) => None,
 			None => Some(to)
 		}
@@ -398,7 +399,7 @@ mod tests {
 				"1,7 move 9,2",
 				"1,8 move 2,9",
 				"1,0 move 1,0",
-				"2,1 move 0,1",
+				"2,1 move 19,9",
 			]),
 		]);
 		assert_eq!(world.field, Field::from_str(

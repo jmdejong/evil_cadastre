@@ -28,7 +28,16 @@ impl Field {
 		Self {plot_size, size, tiles: HashMap::new()}
 	}
 	
-	fn keep_location(&self, pos: Pos) -> Pos {
+	pub fn plant_ambience(&mut self) {
+		for keep in self.list_keeps() {
+			let tiles: Vec<Pos> = self.tiles_in_plot(keep).into_iter().filter(|tile| self.get(*tile) == None).collect();
+			let plot = keep / self.plot_size;
+			let id = plot.x * 55217 + plot.y * 82487;
+			self.set_tile(tiles[id as usize % tiles.len()], Entity::Forest);
+		}
+	}
+	
+	pub fn keep_location(&self, pos: Pos) -> Pos {
 		let plot = pos / self.plot_size;
 		let mut base = plot * self.plot_size + self.plot_size / 2;
 		if self.plot_size.x % 2 == 0 {
@@ -187,6 +196,15 @@ impl Field {
 		}
 		if crossings.len() == 1 {
 			Some(crossings[0])
+		} else {
+			None
+		}
+	}
+	
+	pub fn cross_pos(&self, to: Pos) -> Option<Pos> {
+		let pos = self.find(self.across_border(to)?, None)?;
+		if self.plot_owner(pos) == self.plot_owner(to) {
+			Some(pos)
 		} else {
 			None
 		}

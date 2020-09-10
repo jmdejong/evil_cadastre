@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import string
 
 mapping = {
 	"keep": 'K',
@@ -15,6 +16,8 @@ mapping = {
 	"lair": "L",
 	"farm": "F",
 	"raider": "r",
+	"forest": "%",
+	"swamp": "~",
 	None: " "
 }
 
@@ -33,6 +36,12 @@ html_wrapper = """
 </html>
 """
 
+def to_fullwidth(c):
+	if c in string.ascii_letters + string.digits + string.punctuation:
+		return chr(ord(c) - ord("!") + ord("！"))
+	else:
+		return c+c
+	
 
 def map_ent(ent, mapping):
 	if ent in mapping:
@@ -50,7 +59,7 @@ def parse_pos(s):
 
 def main():
 	grid = Field(sys.stdin.read()).to_grid()
-	chars = [[map_ent(ent, mapping) for ent in row] for row in grid]
+	chars = [[to_fullwidth(map_ent(ent, mapping)) for ent in row] for row in grid]
 	s = "\n".join("".join(line) for line in chars)
 	if "html" in sys.argv:
 		s = html_wrapper.format(s)

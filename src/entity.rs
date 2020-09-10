@@ -26,7 +26,11 @@ pub enum Entity {
 // 	GuardTower,
 	Lair,
 	Stockpile(Option<Resource>),
-	Road
+	Road,
+	
+	// Ambient
+	Forest,
+	Swamp
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +49,7 @@ impl Entity {
 	
 		let unit = EntityProperties{removable: false, destructible: false, mortal: true, stopping: true};
 		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true};
+		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false};
 		match self {
 			Entity::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true},
 			Entity::Raider => unit,
@@ -54,7 +59,9 @@ impl Entity {
 			Entity::Lair => building,
 			Entity::Stockpile(_) => building,
 			Entity::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Entity::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false}
+			Entity::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Entity::Forest => ambient,
+			Entity::Swamp => ambient
 		}
 	}
 }
@@ -71,7 +78,9 @@ impl fmt::Display for Entity {
 			Self::Stockpile(Some(res)) => format!("stockpile:{}", res),
 			Self::Stockpile(None) => format!("stockpile"),
 			Self::Construction(building) => format!("construction:{}", building),
-			Self::Road => "road".to_string()
+			Self::Road => "road".to_string(),
+			Self::Forest => "forest".to_string(),
+			Self::Swamp => "swamp".to_string(),
 		})
 	}
 }
@@ -94,6 +103,8 @@ impl FromStr for Entity {
 			("stockpile", Some(res)) => Self::Stockpile(Some(Resource::from_str(res)?)),
 			("construction", Some(building)) => Self::Construction(BuildingType::from_str(building)?),
 			("road", None) => Self::Road,
+			("forest", None) => Self::Forest,
+			("swamp", None) => Self::Swamp,
 			_ => {return Err(parse_err!("Invalid entity '{}'", s))}
 		})
 	}

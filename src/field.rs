@@ -15,6 +15,7 @@ use crate::{
 	parse_err
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
 	plot_size: Size,
 	size: Size,

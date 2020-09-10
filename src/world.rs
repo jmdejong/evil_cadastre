@@ -201,3 +201,58 @@ impl World {
 		self.field.to_string()
 	}
 }
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::str::FromStr;
+	
+	macro_rules! tileis {
+		($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos($x, $y)), $val)}
+	}
+	
+	#[test]
+	fn test_simple_commands() {
+		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10\n").unwrap()};
+		let commands: Vec<Command> = [
+			"2,1 build stockpile",
+			"15,2 build woodcutter",
+			"6,2 build woodcutter",
+			"6,3 build woodcutter",
+			"0,0 claim",
+			"11,1 claim",
+			"11,2 build stockpile",
+			"6,2 build stockpile",
+			"8,0 build stockpile",
+			"8,1 build stockpile",
+			"8,2 build stockpile",
+			"8,3 build stockpile",
+			"8,4 build stockpile",
+			"8,5 build stockpile"
+		].iter().map(|s| Command::from_str(s).unwrap()).collect();
+		let user = UserId("user".to_string());
+		world.update(&vec![(user.clone(), commands)]);
+		assert_eq!(world.field.plot_owner(Pos(0,0)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos(9,9)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos(11,11)), None);
+		assert_eq!(world.field.plot_owner(Pos(1,11)), None);
+		assert_eq!(world.field.plot_owner(Pos(11,1)), None);
+		tileis!(world, 2,1, Some(Entity::Stockpile(None)));
+		tileis!(world, 15,2, None);
+		tileis!(world, 6,2, Some(Entity::Woodcutter));
+		tileis!(world, 6,3, None);
+		tileis!(world, 11,2, None);
+		tileis!(world, 8,0, Some(Entity::Stockpile(None)));
+		tileis!(world, 8,1, Some(Entity::Stockpile(None)));
+		tileis!(world, 8,2, None);
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10
+			5,5 keep:user;
+			2,1 stockpile;
+			6,2 woodcutter;
+			8,0 stockpile;
+			8,1 stockpile;
+			").unwrap());
+	}
+}

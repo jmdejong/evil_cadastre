@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Entity {
 	
-	Keep(Option<UserId>),
+	Keep(UserId),
 	
 	Construction(BuildingType),
 	

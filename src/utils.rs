@@ -7,3 +7,8 @@ pub fn partition(s: &str) -> (String, String) {
 	}
 	(parts.remove(0), parts.remove(0))
 }
+
+#[allow(dead_code)]
+pub fn ident<T>(t: T) -> T {
+	t
+}

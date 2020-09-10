@@ -29,13 +29,25 @@ impl Field {
 		base - offset
 	}
 	
+	pub fn claim_first_keep(&mut self, source_pos: Pos, userid: UserId) -> Option<Pos> {
+		let pos = self.keep_location(source_pos);
+		match self.get(pos) {
+			Some(Entity::Keep(_)) => None,
+			Some(_) => {panic!("plot without keep: {:?}", pos)}
+			None => {
+				self.tiles.insert(pos, Entity::Keep(userid));
+				Some(pos)
+			}
+		}
+	}
+	
 	pub fn get(&self, pos: Pos) -> Option<Entity> {
 		self.tiles.get(&pos).cloned()
 	}
 	
 	pub fn plot_owner(&self, pos: Pos) -> Option<UserId> {
 		match self.get(self.keep_location(pos)){
-			Some(Entity::Keep(owner)) => owner.clone(),
+			Some(Entity::Keep(owner)) => Some(owner.clone()),
 			Some(_) => {panic!("plot without keep: {:?}", pos)},
 			None => None
 		}
@@ -62,12 +74,16 @@ impl Field {
 		}
 	}
 	
-	fn tiles_in_plot(&self, pos: Pos) -> Vec<Pos>{
+	pub fn tiles_in_plot(&self, pos: Pos) -> Vec<Pos>{
 		let mut positions = Vec::new();
 		let plot = pos / self.plot_size;
+		let keep = self.keep_location(pos);
 		for x in plot.0*self.plot_size.0 .. (plot.0+1)*self.plot_size.0 {
 			for y in plot.1*self.plot_size.1 .. (plot.1+1)*self.plot_size.1 {
-				positions.push(Pos(x, y));
+				let tile = Pos(x, y);
+				if tile != keep {
+					positions.push(tile);
+				}
 			}
 		}
 		positions.sort_by_key(|p| p.distance_to(pos));
@@ -128,5 +144,15 @@ impl Field {
 			return true;
 		}
 		false
+	}
+	
+	pub fn list_keeps(&self) -> Vec<Pos> {
+		let mut keeps = Vec::new();
+		for plot_x in 0..self.size.0 {
+			for plot_y in 0..self.size.1 {
+				keeps.push(self.keep_location(Pos(plot_x, plot_y) * self.plot_size));
+			}
+		}
+		keeps
 	}
 }

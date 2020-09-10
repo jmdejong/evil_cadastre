@@ -21,7 +21,8 @@ pub enum Action{
 	Move(Pos),
 	Attack(Direction),
 	Remove,
-	Use
+	Use,
+	Claim
 }
 
 
@@ -36,6 +37,7 @@ impl FromStr for Action {
 			"attack" => Self::Attack(Direction::from_str(&arg)?),
 			"remove" => Self::Remove,
 			"use" => Self::Use,
+			"claim" => Self::Claim,
 			_ => {return Err(parse_err!("Invalid action '{}'", commtype))}
 		})
 	}

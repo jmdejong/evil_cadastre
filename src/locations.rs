@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::fmt;
 use std::ops::{Add, Sub, Div, Mul, Rem};
 
 use crate::{
@@ -85,6 +86,14 @@ impl FromStr for Pos {
 	}
 }
 
+impl fmt::Display for Pos {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.0, self.1)
+    }
+}
+
+
+
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Direction {
 	North,
@@ -105,6 +114,17 @@ impl Direction {
 }
 
 
+impl fmt::Display for Direction {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", match self {
+			Self::North => "north",
+			Self::South => "south",
+			Self::East => "east",
+			Self::West => "west",
+		})
+	}
+}
+
 impl FromStr for Direction {
 	type Err = ParseError;
 
@@ -118,3 +138,5 @@ impl FromStr for Direction {
 		}
 	}
 }
+
+

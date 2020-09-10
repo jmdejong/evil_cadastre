@@ -1,6 +1,8 @@
 
 
 use std::path::PathBuf;
+use std::fs;
+use std::str::FromStr;
 
 use crate::{
 	input::{InputMethod, HomeScraper},
@@ -8,8 +10,7 @@ use crate::{
 	commands::Command,
 	parser,
 	field::Field,
-	world::World,
-	Pos
+	world::World
 };
 
 
@@ -41,6 +42,8 @@ pub fn main(){
 			println!("{:?}", command);
 		}
 	}
-	let mut world = World::new(Field::new(Pos(10, 10), Pos(5, 5)));
+	let world_s = fs::read_to_string("world.evil").expect("failed to load world");
+	let mut world = World::new(Field::from_str(&world_s).expect("Invalid world"));
 	world.update(&all_commands);
+	fs::write("world.evil.out", world.serialise()).unwrap();
 }

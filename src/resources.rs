@@ -1,5 +1,12 @@
 
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
+
+use crate::{
+	errors::ParseError,
+	parse_err,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Resource {
@@ -47,5 +54,33 @@ impl ResourceCount {
 			}
 		}
 		resvec
+	}
+}
+
+
+
+
+impl fmt::Display for Resource {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", match self {
+			Self::Food => "food",
+			Self::Wood => "wood",
+			Self::Stone => "stone",
+			Self::Iron => "iron",
+		})
+	}
+}
+
+impl FromStr for Resource {
+	type Err = ParseError;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s.to_lowercase().as_str() {
+			"food" => Ok(Self::Food),
+			"wood" => Ok(Self::Wood),
+			"stone" => Ok(Self::Stone),
+			"iron" => Ok(Self::Iron),
+			_ => Err(parse_err!("Invalid resource '{}'", s))
+		}
 	}
 }

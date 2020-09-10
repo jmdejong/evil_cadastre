@@ -8,6 +8,7 @@ use crate::{
 	entity::Entity,
 	resources::{Resource, ResourceCount},
 	buildings::BuildingType,
+	utils,
 	Pos
 };
 
@@ -98,7 +99,10 @@ impl World {
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
 		let mut user_data = self.calculate_user_data();
-		let ordered = Self::order_commands(commands);
+		let ordered = Self::order_commands(&commands.iter().map(|(user, commands)| {
+			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
+			(user.clone(), utils::truncated(commands, data.ap_left as usize))
+		}).collect::<Vec<(UserId, Vec<Command>)>>());
 		for (user, command) in ordered.iter() {
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
 			self.run_command(user, command, data);
@@ -107,10 +111,6 @@ impl World {
 	}
 	
 	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData) {
-		if user_data.ap_left <= 0 {
-			return
-		}
-		user_data.ap_left -= 1;
 		
 		if command.action == Action::Claim && user_data.keeps.is_empty() {
 			if let Some(pos) = self.field.claim_first_keep(command.pos, user.clone()) {
@@ -129,6 +129,7 @@ impl World {
 					self.field.set_tile(command.pos, ent);
 				} else if building == BuildingType::Woodcutter && user_data.has_woodcutter == false {
 					// bootstrap the first woodcutter
+					self.field.set_tile(command.pos, ent);
 					user_data.has_woodcutter = true;
 				}
 			}
@@ -194,5 +195,9 @@ impl World {
 			}
 			_ => {}
 		}
+	}
+	
+	pub fn serialise(&self) -> String {
+		self.field.to_string()
 	}
 }

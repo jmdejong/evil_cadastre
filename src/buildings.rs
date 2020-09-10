@@ -1,5 +1,6 @@
 
 use std::str::FromStr;
+use std::fmt;
 
 use crate::{
 	entity::Entity,
@@ -23,7 +24,7 @@ impl BuildingType {
 	
 	pub fn cost_result(&self) -> (ResourceCount, Entity) {
 		let (cost, result) = match self {
-			Self::Woodcutter => (vec![], Entity::Woodcutter),
+			Self::Woodcutter => (vec![Wood], Entity::Woodcutter),
 			Self::Farm => (vec![Wood], Entity::Farm),
 			Self::Stockpile => (vec![], Entity::Stockpile(None)),
 			Self::Lair => (vec![Wood, Wood, Wood], Entity::Lair),
@@ -44,6 +45,17 @@ impl FromStr for BuildingType {
 			"lair" => Self::Lair,
 			"stockpile" => Self::Stockpile,
 			_ => {return Err(parse_err!("Invalid building '{}'", s))}
+		})
+	}
+}
+
+impl fmt::Display for BuildingType {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", match self {
+			Self::Woodcutter => "woodcutter",
+			Self::Farm => "farm",
+			Self::Lair => "lair",
+			Self::Stockpile => "stockpile",
 		})
 	}
 }

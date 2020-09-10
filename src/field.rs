@@ -1,5 +1,7 @@
 
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
 
 use crate::{
 	Pos,
@@ -7,7 +9,10 @@ use crate::{
 	locations::Direction,
 	entity::Entity,
 	resources::{Resource, ResourceCount},
-	UserId
+	UserId,
+	utils::{partition, partition_by},
+	errors::ParseError,
+	parse_err
 };
 
 pub struct Field {
@@ -156,3 +161,53 @@ impl Field {
 		keeps
 	}
 }
+
+
+
+impl fmt::Display for Field {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "size:{} plot_size:{}\n", self.size, self.plot_size)?;
+		for (pos, ent) in self.tiles.iter() {
+			write!(f, "{} {}; ", pos, ent)?;
+		}
+		Ok(())
+	}
+}
+
+impl FromStr for Field {
+	type Err = ParseError;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let (meta, tiles) = partition_by(s, "\n");
+		let meta_items = meta.split(' ');
+		let mut size = None;
+		let mut plot_size = None;
+		for meta_item in meta_items {
+			let (name, arg) = partition_by(meta_item, ":");
+			match name.trim() {
+				"size" => {size = Some(Pos::from_str(&arg)?)}
+				"plot_size" => {plot_size = Some(Pos::from_str(&arg)?)}
+				_ => {}
+			}
+		}
+		Ok(Self{
+			tiles: tiles
+				.split(';')
+				.filter_map(|item| {
+					let t = item.trim();
+					if t == "" {
+						return None;
+					}
+					Some(t)
+				})
+				.map(|item| {
+					let (pos_s, ent_s) = partition(item);
+					Ok((Pos::from_str(&pos_s)?, Entity::from_str(&ent_s)?))
+				})
+				.collect::<Result<HashMap<Pos, Entity>, Self::Err>>()?,
+			size: size.ok_or(parse_err!("No size found for field"))?,
+			plot_size: plot_size.ok_or(parse_err!("No plot size found for field"))?,
+		})
+	}
+}
+

@@ -95,9 +95,9 @@ impl FromStr for Pos {
 }
 
 impl fmt::Display for Pos {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{},{}", self.x, self.y)
-    }
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{},{}", self.x, self.y)
+	}
 }
 
 

@@ -24,7 +24,16 @@ pub fn truncated<T: Clone>(a: &[T], l: usize) -> Vec<T> {
 	c
 }
 
+pub fn randomize (mut seed: u32) -> u32 {
+	seed += 1234567;
+	seed ^= seed << 13;
+	seed ^= seed >> 17;
+	seed ^= seed << 5;
+	seed
+}
+
+
 #[allow(dead_code)]
-pub fn ident<T>(t: T) -> T {
+pub fn identity<T>(t: T) -> T {
 	t
 }

@@ -28,14 +28,6 @@ impl Field {
 		Self {plot_size, size, tiles: HashMap::new()}
 	}
 	
-	pub fn plant_ambience(&mut self) {
-		for keep in self.list_keeps() {
-			let tiles: Vec<Pos> = self.tiles_in_plot(keep).into_iter().filter(|tile| self.get(*tile) == None).collect();
-			let plot = keep / self.plot_size;
-			let id = plot.x * 55217 + plot.y * 82487;
-			self.set_tile(tiles[id as usize % tiles.len()], Entity::Forest);
-		}
-	}
 	
 	pub fn keep_location(&self, pos: Pos) -> Pos {
 		let plot = pos / self.plot_size;
@@ -123,13 +115,12 @@ impl Field {
 		resources
 	}
 	
+	pub fn find_all(&self, source_pos: Pos, ent: Option<Entity>) -> Vec<Pos> {
+		self.tiles_in_plot(source_pos).into_iter().filter(|pos| self.get(*pos) == ent).collect()
+	}
+	
 	pub fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
-		for pos in self.tiles_in_plot(source_pos) {
-			if self.get(pos) == ent {
-				return Some(pos);
-			}
-		}
-		None
+		self.find_all(source_pos, ent).into_iter().next()
 	}
 	
 	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
@@ -215,7 +206,7 @@ impl Field {
 
 impl fmt::Display for Field {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "size:{} plot_size:{}\n", self.size, self.plot_size)?;
+		write!(f, "size:{} plot_size:{}/", self.size, self.plot_size)?;
 		for (pos, ent) in self.tiles.iter() {
 			write!(f, "{} {}; ", pos, ent)?;
 		}
@@ -227,7 +218,7 @@ impl FromStr for Field {
 	type Err = ParseError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let (meta, tiles) = partition_by(s, "\n");
+		let (meta, tiles) = partition_by(s, "/");
 		let meta_items = meta.split(' ');
 		let mut size = None;
 		let mut plot_size = None;

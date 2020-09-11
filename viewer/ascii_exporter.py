@@ -29,7 +29,7 @@ html_wrapper = """
 <title>Evil Cadastre</title>
 </head>
 <body>
-<pre>
+<pre style="text-transform: full-width">
 {}
 </pre>
 </body>
@@ -57,9 +57,43 @@ def parse_pos(s):
 	xs, _, ys = s.partition(",")
 	return (int(xs), int(ys))
 
+
+def wrap_coordinates(chargrid, plot_size):
+	plot_width, plot_height = plot_size
+	topdigits = [" "] * len(chargrid[0])
+	topcoords = [" "] * len(chargrid[0])
+	for x in range(len(chargrid[0])):
+		localpos = x%plot_height
+		#plotpos = str(x - localpos)
+		if localpos == 0:
+			topcoords[x:x+len(str(x))] = [c for c in str(x)]
+		topdigits[x] = str(localpos)
+	#leftdigits = [str(y % plot_height) for y in range(len(chargrid))]
+	for y in range(len(chargrid)):
+		localpos = y%plot_height
+		chargrid[y].insert(0, " ")
+		chargrid[y].insert(0, str(localpos))
+		chargrid[y].insert(0, " ")
+		plotpos = str(y - localpos)
+		chargrid[y].insert(0, plotpos[localpos] if localpos < len(plotpos) else " ")
+	header = [" "]*4
+	chargrid.insert(0, header + topdigits)
+	chargrid.insert(0, header + topcoords)
+	return chargrid
+
+
+html = True
+wide = True
+coords = True
+
 def main():
-	grid = Field(sys.stdin.read()).to_grid()
-	chars = [[to_fullwidth(map_ent(ent, mapping)) for ent in row] for row in grid]
+	field = Field(sys.stdin.read())
+	grid = field.to_grid()
+	chars = [[map_ent(ent, mapping) for ent in row] for row in grid]
+	if coords:
+		chars = wrap_coordinates(chars, field.plot_size)
+	#if wide:
+		#chars = [[to_fullwidth(char) for char in row] for row in chars]
 	s = "\n".join("".join(line) for line in chars)
 	if "html" in sys.argv:
 		s = html_wrapper.format(s)
@@ -73,7 +107,7 @@ class Field:
 		self.plot_size = None
 		self.tiles = {}
 		
-		meta, _, tiles = inp.partition("\n")
+		meta, _, tiles = inp.partition("/")
 		for meta_item in meta.split():
 			key, _, value = meta_item.partition(":")
 			if key == "size":

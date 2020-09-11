@@ -37,7 +37,23 @@ impl World {
 	
 	pub fn init(plot_size: Pos, size: Pos) -> World {
 		let mut field = Field::new(plot_size, size);
-		field.plant_ambience();
+		for keep in field.list_keeps() {
+			let plot = keep / plot_size;
+			let plot_start = plot * plot_size;
+			// corners are unavailable
+			field.set_tile(plot_start, Entity::Swamp);
+			field.set_tile(plot_start + Pos::new(plot_size.x-1, 0), Entity::Swamp);
+			field.set_tile(plot_start + Pos::new(0, plot_size.y-1), Entity::Swamp);
+			field.set_tile(plot_start + Pos::new(plot_size.x-1, plot_size.y-1), Entity::Swamp);
+			// Place some random forests and swamps
+			let tiles: Vec<Pos> = field.find_all(keep, None);
+			let r0 = utils::randomize((plot.x + plot.y * size.y) as u32);
+			let r1 = utils::randomize(r0);
+			let r2 = utils::randomize(r1);
+			field.set_tile(tiles[(r0 as usize) % tiles.len()], Entity::Forest);
+			field.set_tile(tiles[(r1 as usize) % tiles.len()], Entity::Forest);
+			field.set_tile(tiles[(r2 as usize) % tiles.len()], Entity::Swamp);
+		}
 		Self::new(field)
 	}
 	
@@ -238,7 +254,7 @@ mod tests {
 	
 	#[test]
 	fn test_simple_commands() {
-		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10\n").unwrap()};
+		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10 /").unwrap()};
 		let (user, commands) = parse_commands("user", &[
 			"2,1 build stockpile",
 			"15,2 build woodcutter",
@@ -270,7 +286,7 @@ mod tests {
 		tileis!(world, 8,1, Some(Entity::Stockpile(None)));
 		tileis!(world, 8,2, None);
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			2,1 stockpile;
 			6,2 woodcutter;
@@ -282,7 +298,7 @@ mod tests {
 	#[test]
 	fn test_woodcutting(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			0,5 woodcutter;
 			1,5 stockpile;
@@ -298,7 +314,7 @@ mod tests {
 		world.update(&vec![(user, commands)]);
 		
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			0,5 woodcutter;
 			1,5 stockpile:wood;
@@ -312,7 +328,7 @@ mod tests {
 	#[test]
 	fn test_attack(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			6,6 lair;
 			1,9 raider;
@@ -338,7 +354,7 @@ mod tests {
 		]);
 		
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			6,6 lair;
 			1,9 raider;
@@ -358,7 +374,7 @@ mod tests {
 	#[test]
 	fn test_move(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			1,1 raider;
 			1,2 raider;
@@ -403,7 +419,7 @@ mod tests {
 			]),
 		]);
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10
+			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			0,0 raider;
 			1,2 raider;

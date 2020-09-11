@@ -200,6 +200,16 @@ impl Field {
 			None
 		}
 	}
+	
+	pub fn neighbours(&self, pos: Pos, val: Option<Entity>) -> bool {
+		for dir in Direction::directions(){
+			let p = pos + dir.to_pos();
+			if self.get(p) == val {
+				return true;
+			}
+		}
+		return false;
+	}
 }
 
 

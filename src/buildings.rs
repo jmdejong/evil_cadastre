@@ -25,7 +25,7 @@ impl BuildingType {
 	
 	pub fn cost_result(&self) -> (ResourceCount, Entity) {
 		let (cost, result) = match self {
-			Self::Woodcutter => (vec![Wood], Entity::Woodcutter),
+			Self::Woodcutter => (vec![], Entity::Woodcutter),
 			Self::Farm => (vec![Wood], Entity::Farm),
 			Self::Stockpile => (vec![], Entity::Stockpile(None)),
 			Self::Lair => (vec![Wood, Wood, Wood], Entity::Lair),

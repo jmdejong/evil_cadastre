@@ -161,13 +161,12 @@ impl World {
 				if building == BuildingType::Road && self.field.across_border(command.pos) == None {
 					return;
 				}
+				if building == BuildingType::Woodcutter && !self.field.neighbours(command.pos, Some(Entity::Forest)){
+					return
+				}
 				let (cost, ent) = building.cost_result();
 				if self.field.pay(command.pos, &cost){
 					self.field.set_tile(command.pos, ent);
-				} else if building == BuildingType::Woodcutter && user_data.has_woodcutter == false {
-					// bootstrap the first woodcutter
-					self.field.set_tile(command.pos, ent);
-					user_data.has_woodcutter = true;
 				}
 			}
 			

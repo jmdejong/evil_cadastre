@@ -13,6 +13,7 @@ use crate::{
 pub enum BuildingType {
 	Woodcutter,
 	Farm,
+	Quarry,
 // 	Guardpost,
 	Stockpile,
 	Lair,
@@ -27,6 +28,7 @@ impl BuildingType {
 		let (cost, result) = match self {
 			Self::Woodcutter => (vec![], Entity::Woodcutter),
 			Self::Farm => (vec![Wood], Entity::Farm),
+			Self::Quarry => (vec![Wood, Wood, Wood, Wood], Entity::Quarry),
 			Self::Stockpile => (vec![], Entity::Stockpile(None)),
 			Self::Lair => (vec![Wood, Wood, Wood], Entity::Lair),
 			Self::Road => (vec![Wood, Stone], Entity::Road),
@@ -43,6 +45,7 @@ impl FromStr for BuildingType {
 		Ok(match s.to_lowercase().as_str() {
 			"woodcutter" => Self::Woodcutter,
 			"farm" => Self::Farm,
+			"quarry" => Self::Quarry,
 // 			"guardpost" => Self::guardpost,
 			"lair" => Self::Lair,
 			"stockpile" => Self::Stockpile,
@@ -57,6 +60,7 @@ impl fmt::Display for BuildingType {
 		write!(f, "{}", match self {
 			Self::Woodcutter => "woodcutter",
 			Self::Farm => "farm",
+			Self::Quarry => "quarry",
 			Self::Lair => "lair",
 			Self::Stockpile => "stockpile",
 			Self::Road => "road"

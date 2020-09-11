@@ -41,18 +41,18 @@ impl World {
 			let plot = keep / plot_size;
 			let plot_start = plot * plot_size;
 			// corners are unavailable
-			field.set_tile(plot_start, Entity::Swamp);
-			field.set_tile(plot_start + Pos::new(plot_size.x-1, 0), Entity::Swamp);
-			field.set_tile(plot_start + Pos::new(0, plot_size.y-1), Entity::Swamp);
-			field.set_tile(plot_start + Pos::new(plot_size.x-1, plot_size.y-1), Entity::Swamp);
+			field.set_tile(plot_start, Entity::Rock);
+			field.set_tile(plot_start + Pos::new(plot_size.x-1, 0), Entity::Rock);
+			field.set_tile(plot_start + Pos::new(0, plot_size.y-1), Entity::Rock);
+			field.set_tile(plot_start + Pos::new(plot_size.x-1, plot_size.y-1), Entity::Rock);
 			// Place some random forests and swamps
 			let tiles: Vec<Pos> = field.find_all(keep, None);
 			let r0 = utils::randomize((plot.x + plot.y * size.y) as u32);
 			let r1 = utils::randomize(r0);
 			let r2 = utils::randomize(r1);
 			field.set_tile(tiles[(r0 as usize) % tiles.len()], Entity::Forest);
-			field.set_tile(tiles[(r1 as usize) % tiles.len()], Entity::Forest);
 			field.set_tile(tiles[(r2 as usize) % tiles.len()], Entity::Swamp);
+			field.set_tile(tiles[(r1 as usize) % tiles.len()], Entity::Forest);
 		}
 		Self::new(field)
 	}
@@ -78,45 +78,66 @@ impl World {
 	}
 	
 	fn order_commands(commands: &[(UserId, Vec<Command>)]) -> Vec<(UserId, Command)> {
-		let mut build_commands = Vec::new();
-		let mut move_commands = Vec::new();
-		let mut attack_commands = Vec::new();
-		let mut remove_commands = Vec::new();
-		let mut use_commands = Vec::new();
-		let mut claim_commands = Vec::new();
-		for (user, command_list) in commands {
-			for command in command_list {
-				match command.action {
-					Action::Build(_) => {
-						build_commands.push((user, command));
-					}
-					Action::Move(_) => {
-						move_commands.push((user, command));
-					}
-					Action::Attack(_) => {
-						attack_commands.push((user, command));
-					}
-					Action::Use => {
-						use_commands.push((user, command));
-					}
-					Action::Remove => {
-						remove_commands.push((user, command));
-					}
-					Action::Claim => {
-						claim_commands.push((user, command));
-					}
-				}
-			}
+// 		let mut build_commands = Vec::new();
+// 		let mut move_commands = Vec::new();
+// 		let mut attack_commands = Vec::new();
+// 		let mut remove_commands = Vec::new();
+// 		let mut use_commands = Vec::new();
+// 		let mut claim_commands = Vec::new();
+// 		for (user, command_list) in commands {
+// 			for command in command_list {
+// 				match command.action {
+// 					Action::Build(_) => {
+// 						build_commands.push((user, command));
+// 					}
+// 					Action::Move(_) => {
+// 						move_commands.push((user, command));
+// 					}
+// 					Action::Attack(_) => {
+// 						attack_commands.push((user, command));
+// 					}
+// 					Action::Use => {
+// 						use_commands.push((user, command));
+// 					}
+// 					Action::Remove => {
+// 						remove_commands.push((user, command));
+// 					}
+// 					Action::Claim => {
+// 						claim_commands.push((user, command));
+// 					}
+// 				}
+// 			}
+// 		}
+// 		let mut ordered_commands = Vec::new();
+// 		ordered_commands.append(&mut claim_commands);
+// 		ordered_commands.append(&mut attack_commands);
+// 		ordered_commands.append(&mut use_commands);
+// 		ordered_commands.append(&mut build_commands);
+// 		ordered_commands.append(&mut move_commands);
+// 		ordered_commands.append(&mut remove_commands);
+// 		
+// 		ordered_commands.into_iter().map(|(u, c)|(u.clone(), c.clone())).collect()
+		let mut command_iterators = Vec::new();
+		for (user, comms) in commands {
+			command_iterators.push((user.clone(), comms.iter()));
 		}
 		let mut ordered_commands = Vec::new();
-		ordered_commands.append(&mut claim_commands);
-		ordered_commands.append(&mut attack_commands);
-		ordered_commands.append(&mut use_commands);
-		ordered_commands.append(&mut build_commands);
-		ordered_commands.append(&mut move_commands);
-		ordered_commands.append(&mut remove_commands);
-		
-		ordered_commands.into_iter().map(|(u, c)|(u.clone(), c.clone())).collect()
+		let mut r = utils::randomize(503);
+		loop {
+			let mut heads: Vec<(UserId, Command)> = command_iterators
+				.iter_mut()
+				.filter_map(|(user, it)| Some((user.clone(), it.next()?)))
+				.map(|(user, command)| (user.clone(), command.clone()))
+				.collect();
+			if heads.is_empty(){
+				break;
+			}
+			while !heads.is_empty() {
+				r = utils::randomize(r);
+				ordered_commands.push(heads.remove((r as usize) % heads.len()));
+			}
+		}
+		ordered_commands
 	}
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
@@ -127,7 +148,6 @@ impl World {
 			(user.clone(), utils::truncated(commands, data.ap_left as usize))
 		}).collect::<Vec<(UserId, Vec<Command>)>>());
 		for (user, command) in ordered.iter() {
-			// todo: make sure no 2 commands can run on the same unit/building in one update
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
 			self.run_command(user, command, data, &mut used_tiles);
 		}
@@ -289,9 +309,9 @@ mod tests {
 		assert_eq!(world.field.plot_owner(Pos::new(11,11)), None);
 		assert_eq!(world.field.plot_owner(Pos::new(1,11)), None);
 		assert_eq!(world.field.plot_owner(Pos::new(11,1)), None);
-		tileis!(world, 2,1, Some(Entity::Stockpile(None)));
+		tileis!(world, 2,1, None);//Some(Entity::Stockpile(None)));
 		tileis!(world, 15,2, None);
-		tileis!(world, 6,2, None);
+		tileis!(world, 6,2, Some(Entity::Stockpile(None)));
 		tileis!(world, 6,3, None);
 		tileis!(world, 11,2, None);
 		tileis!(world, 8,0, Some(Entity::Stockpile(None)));
@@ -300,7 +320,7 @@ mod tests {
 		assert_eq!(world.field, Field::from_str(
 			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
-			2,1 stockpile;
+			6,2 stockpile;
 			8,0 stockpile;
 			8,1 stockpile;"
 		).unwrap());

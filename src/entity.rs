@@ -27,10 +27,12 @@ pub enum Entity {
 	Lair,
 	Stockpile(Option<Resource>),
 	Road,
+	Quarry,
 	
 	// Ambient
 	Forest,
-	Swamp
+	Swamp,
+	Rock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,17 +53,19 @@ impl Entity {
 		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true};
 		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false};
 		match self {
-			Entity::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true},
-			Entity::Raider => unit,
-			Entity::Farm => building,
-			Entity::Woodcutter => building,
-// 			Entity::Guardpost => EntityProperties{removable: true},
-			Entity::Lair => building,
-			Entity::Stockpile(_) => building,
-			Entity::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Entity::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Entity::Forest => ambient,
-			Entity::Swamp => ambient
+			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true},
+			Self::Raider => unit,
+			Self::Farm => building,
+			Self::Woodcutter => building,
+// 			Self::Guardpost => EntityProperties{removable: true},
+			Self::Quarry => building,
+			Self::Lair => building,
+			Self::Stockpile(_) => building,
+			Self::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Self::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Self::Forest => ambient,
+			Self::Swamp => ambient,
+			Self::Rock => ambient
 		}
 	}
 }
@@ -74,6 +78,7 @@ impl fmt::Display for Entity {
 			Self::Raider => "raider".to_string(),
 			Self::Farm => "farm".to_string(),
 			Self::Woodcutter => "woodcutter".to_string(),
+			Self::Quarry => "quarry".to_string(),
 			Self::Lair => "lair".to_string(),
 			Self::Stockpile(Some(res)) => format!("stockpile:{}", res),
 			Self::Stockpile(None) => format!("stockpile"),
@@ -81,6 +86,7 @@ impl fmt::Display for Entity {
 			Self::Road => "road".to_string(),
 			Self::Forest => "forest".to_string(),
 			Self::Swamp => "swamp".to_string(),
+			Self::Rock => "rock".to_string(),
 		})
 	}
 }
@@ -98,6 +104,7 @@ impl FromStr for Entity {
 			("raider", None) => Self::Raider,
 			("farm", None) => Self::Farm,
 			("woodcutter", None) => Self::Woodcutter,
+			("quarry", None) => Self::Quarry,
 			("lair", None) => Self::Lair,
 			("stockpile", None) => Self::Stockpile(None),
 			("stockpile", Some(res)) => Self::Stockpile(Some(Resource::from_str(res)?)),
@@ -105,6 +112,7 @@ impl FromStr for Entity {
 			("road", None) => Self::Road,
 			("forest", None) => Self::Forest,
 			("swamp", None) => Self::Swamp,
+			("rock", None) => Self::Rock,
 			_ => {return Err(parse_err!("Invalid entity '{}'", s))}
 		})
 	}

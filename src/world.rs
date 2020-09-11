@@ -1,5 +1,5 @@
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
 	field::Field,
@@ -121,6 +121,7 @@ impl World {
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
 		let mut user_data = self.calculate_user_data();
+		let mut used_tiles = HashSet::new();
 		let ordered = Self::order_commands(&commands.iter().map(|(user, commands)| {
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
 			(user.clone(), utils::truncated(commands, data.ap_left as usize))
@@ -128,7 +129,7 @@ impl World {
 		for (user, command) in ordered.iter() {
 			// todo: make sure no 2 commands can run on the same unit/building in one update
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
-			self.run_command(user, command, data);
+			self.run_command(user, command, data, &mut used_tiles);
 		}
 		
 	}
@@ -144,17 +145,24 @@ impl World {
 		}
 	}
 	
-	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData) {
+	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData, used_tiles: &mut HashSet<Pos>) {
+		
+		if used_tiles.contains(&command.pos){
+			return;
+		}
 		
 		if command.action == Action::Claim && user_data.keeps.is_empty() {
 			if let Some(pos) = self.field.claim_first_keep(command.pos, user.clone()) {
 				user_data.keeps.push(pos);
+				used_tiles.insert(command.pos);
 			}
 		}
 		
 		if self.field.plot_owner(command.pos).as_ref() != Some(user) {
 			return
 		}
+		
+		used_tiles.insert(command.pos);
 		
 		match (command.action.clone(), self.field.get(command.pos)) {
 			(Action::Build(building), None) => {
@@ -171,11 +179,16 @@ impl World {
 			}
 			
 			(Action::Move(target), Some(ent)) => {
+				if used_tiles.contains(&target) {
+					return;
+				}
 				if let Some(pos) = self.move_destination(command.pos, target) {
 					match ent {
 						Entity::Raider => {
 							self.field.clear_tile(command.pos);
 							self.field.set_tile(pos, ent);
+							used_tiles.insert(pos);
+							used_tiles.insert(target);
 						}
 						_ => {}
 					}
@@ -278,7 +291,7 @@ mod tests {
 		assert_eq!(world.field.plot_owner(Pos::new(11,1)), None);
 		tileis!(world, 2,1, Some(Entity::Stockpile(None)));
 		tileis!(world, 15,2, None);
-		tileis!(world, 6,2, Some(Entity::Woodcutter));
+		tileis!(world, 6,2, None);
 		tileis!(world, 6,3, None);
 		tileis!(world, 11,2, None);
 		tileis!(world, 8,0, Some(Entity::Stockpile(None)));
@@ -288,7 +301,6 @@ mod tests {
 			"size:5,5 plot_size:10,10 /
 			5,5 keep:user;
 			2,1 stockpile;
-			6,2 woodcutter;
 			8,0 stockpile;
 			8,1 stockpile;"
 		).unwrap());

@@ -17,6 +17,7 @@ pub enum BuildingType {
 // 	Guardpost,
 	Stockpile,
 	Lair,
+	Barracks,
 	Road
 }
 
@@ -31,6 +32,7 @@ impl BuildingType {
 			Self::Quarry => (vec![Wood, Wood, Wood, Wood], Entity::Quarry),
 			Self::Stockpile => (vec![], Entity::Stockpile(None)),
 			Self::Lair => (vec![Wood, Wood, Wood], Entity::Lair),
+			Self::Barracks => (vec![Wood, Wood, Wood, Wood, Stone, Stone, Stone], Entity::Barracks),
 			Self::Road => (vec![Wood, Stone], Entity::Road),
 		};
 		(ResourceCount::from_vec(&cost), result)
@@ -48,6 +50,7 @@ impl FromStr for BuildingType {
 			"quarry" => Self::Quarry,
 // 			"guardpost" => Self::guardpost,
 			"lair" => Self::Lair,
+			"barracks" => Self::Barracks,
 			"stockpile" => Self::Stockpile,
 			"road" => Self::Road,
 			_ => {return Err(parse_err!("Invalid building '{}'", s))}
@@ -62,6 +65,7 @@ impl fmt::Display for BuildingType {
 			Self::Farm => "farm",
 			Self::Quarry => "quarry",
 			Self::Lair => "lair",
+			Self::Barracks => "barracks",
 			Self::Stockpile => "stockpile",
 			Self::Road => "road"
 		})

@@ -23,7 +23,7 @@ pub trait InputMethod {
 pub struct HomeScraper {
 	pub user_dir: PathBuf,
 	pub game_dir: PathBuf,
-	pub command_fname: PathBuf,
+	pub command_fnames: Vec<PathBuf>,
 	pub log_fname: PathBuf
 }
 
@@ -47,11 +47,17 @@ impl InputMethod for HomeScraper {
 	}
 	
 	fn read_input(&self, home_dir: &PathBuf) -> Option<String> {
-		let path: PathBuf = home_dir.join(&self.command_fname);
-		fs::read_to_string(&path).map_err(|err| {
-			let _ = self.output(home_dir, &format!("File error loading {:?}: {}", &path, err.to_string()));
-			err
-		}).ok()
+		for command_fname in self.command_fnames.iter() {
+			let path: PathBuf = home_dir.join(&command_fname);
+			let res = fs::read_to_string(&path).map_err(|err| {
+				let _ = self.output(home_dir, &format!("File error loading {:?}: {}", &path, err.to_string()));
+				err
+			});
+			if let Ok(command_s) = res {
+				return Some(command_s);
+			}
+		}
+		None
 	}
 	
 	fn output(&self, home_dir: &PathBuf, msg: &str) -> io::Result<()> {

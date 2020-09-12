@@ -65,13 +65,8 @@ impl World {
 		let mut data = HashMap::new();
 		for pos in self.field.list_keeps() {
 			if let Some(Entity::Keep(userid)) = self.field.get(pos) {
-				let mut entry = data.entry(userid.clone()).or_insert_with(UserData::new);
+					let entry = data.entry(userid.clone()).or_insert_with(UserData::new);
 				entry.keeps.push(pos);
-				for tile in self.field.tiles_in_plot(pos){
-					if self.field.get(tile) == Some(Entity::Woodcutter){
-						entry.has_woodcutter = true;
-					}
-				}
 			}
 		}
 		data
@@ -208,6 +203,12 @@ impl World {
 					Entity::Lair => {
 						if self.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
 							self.field.change_tile(command.pos, None, Some(Entity::Raider));
+						}
+					}
+					Entity::Barracks => {
+						if self.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Wood, Resource::Stone])) {
+							// todo: will require iron later
+							self.field.change_tile(command.pos, None, Some(Entity::Warrior));
 						}
 					}
 					_ => ()

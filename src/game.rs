@@ -46,8 +46,8 @@ pub struct UpdateArgs {
 	#[structopt(short, long, default_value=".cadastre/evil/", help="The path to the directory where the game files are relative to the home directory")]
 	game_dir: String,
 	
-	#[structopt(short, long,  help="The name that identifies the commands for this world")]
-	world_name: String
+	#[structopt(short, long, required(true), help="The name that identifies the commands for this world")]
+	world_name: Vec<String>
 	
 }
 
@@ -68,8 +68,8 @@ pub fn update(args: UpdateArgs){
 	let input = HomeScraper {
 		user_dir: PathBuf::from(args.home_dirs),
 		game_dir: PathBuf::from(args.game_dir),
-		command_fname: PathBuf::from(&args.world_name),
-		log_fname: PathBuf::from(format!("{}.log", args.world_name))
+		command_fnames: args.world_name.iter().map(PathBuf::from).collect(),
+		log_fname: PathBuf::from(format!("{}.log", args.world_name[0]))
 	};
 	let all_commands = read_all_commands(&input);
 	let mut world_s = String::new();

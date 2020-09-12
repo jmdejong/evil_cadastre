@@ -47,7 +47,7 @@ impl World {
 			field.set_tile(plot_start + Pos::new(plot_size.x-1, plot_size.y-1), Entity::Rock);
 			// Place some random forests and swamps
 			let tiles: Vec<Pos> = field.find_all(keep, None);
-			let r0 = utils::randomize((plot.x + plot.y * size.y) as u32);
+			let r0 = utils::randomize((plot.x + plot.y * 67679) as u32);
 			let r1 = utils::randomize(r0);
 			let r2 = utils::randomize(r1);
 			field.set_tile(tiles[(r0 as usize) % tiles.len()], Entity::Forest);
@@ -77,15 +77,14 @@ impl World {
 		data
 	}
 	
-	fn order_commands(commands: &[(UserId, Vec<Command>)]) -> Vec<(UserId, Command)> {
+	fn order_commands(commands: &[(UserId, Vec<Command>)]) -> Vec<Vec<(UserId, Command)>> {
 		let mut command_iterators = Vec::new();
 		for (user, comms) in commands {
 			command_iterators.push((user.clone(), comms.iter()));
 		}
 		let mut ordered_commands = Vec::new();
-		let mut r = utils::randomize(503);
 		loop {
-			let mut heads: Vec<(UserId, Command)> = command_iterators
+			let heads: Vec<(UserId, Command)> = command_iterators
 				.iter_mut()
 				.filter_map(|(user, it)| Some((user.clone(), it.next()?)))
 				.map(|(user, command)| (user, command.clone()))
@@ -93,29 +92,9 @@ impl World {
 			if heads.is_empty(){
 				break;
 			}
-			while !heads.is_empty() {
-				r = utils::randomize(r);
-				ordered_commands.push(heads.remove((r as usize) % heads.len()));
-			}
+			ordered_commands.push(heads);
 		}
 		ordered_commands
-	}
-	
-	
-	fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
-		let mut available_resources = ResourceCount::default();
-		for pos in self.field.tiles_in_plot(pos){
-			if let Some(Entity::Stockpile(Some(res))) = self.field.get(pos) {
-				available_resources.add_resource(res);
-			}
-		}
-		if available_resources.can_afford(cost) {
-			for res in cost.to_vec() {
-				self.field.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
-			}
-			return true;
-		}
-		false
 	}
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
@@ -125,29 +104,19 @@ impl World {
 			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
 			(user.clone(), utils::truncated(commands, data.ap_left as usize))
 		}).collect::<Vec<(UserId, Vec<Command>)>>());
-		for (user, command) in ordered.iter() {
-			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
-			self.run_command(user, command, data, &mut used_tiles);
-		}
-		
-	}
-	
-	fn move_destination(&self, from: Pos, to: Pos) -> Option<Pos> {
-		if self.field.keep_location(from) != self.field.keep_location(to) {
-			return None;
-		}
-		match self.field.get(to) {
-			Some(Entity::Road) => self.field.cross_pos(to),
-			Some(_) => None,
-			None => Some(to)
+		for command_round in ordered {
+			let mut destroyed = Vec::new();
+			for (user, command) in command_round {
+				let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
+				self.run_command(&user, &command, data, &mut used_tiles, &mut destroyed);
+			}
+			for tile in destroyed {
+				self.field.clear_tile(tile);
+			}
 		}
 	}
 	
-	pub fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
-		self.field.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
-	}
-	
-	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData, used_tiles: &mut HashSet<Pos>) {
+	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData, used_tiles: &mut HashSet<Pos>, destroyed: &mut Vec<Pos>) {
 		
 		if used_tiles.contains(&command.pos){
 			return;
@@ -185,14 +154,11 @@ impl World {
 					return;
 				}
 				if let Some(pos) = self.move_destination(command.pos, target) {
-					match ent {
-						Entity::Raider => {
-							self.field.clear_tile(command.pos);
-							self.field.set_tile(pos, ent);
-							used_tiles.insert(pos);
-							used_tiles.insert(target);
-						}
-						_ => {}
+					if ent == Entity::Raider || ent == Entity::Warrior {
+						self.field.clear_tile(command.pos);
+						self.field.set_tile(pos, ent);
+						used_tiles.insert(pos);
+						used_tiles.insert(target);
 					}
 				}
 			}
@@ -209,10 +175,20 @@ impl World {
 							if let Some(target) = self.field.get(pos) {
 								let props = target.properties();
 								if props.destructible {
-									self.field.clear_tile(pos);
+									destroyed.push(pos);
 								}
 								if props.stopping {
 									break;
+								}
+							}
+						}
+					}
+					Entity::Warrior => {
+						for pos in lane {
+							if let Some(target) = self.field.get(pos) {
+								let props = target.properties();
+								if props.mortal {
+									destroyed.push(pos);
 								}
 							}
 						}
@@ -249,6 +225,41 @@ impl World {
 	
 	pub fn serialise(&self) -> String {
 		self.field.to_string()
+	}
+	
+	
+	
+	
+	fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
+		let mut available_resources = ResourceCount::default();
+		for pos in self.field.tiles_in_plot(pos){
+			if let Some(Entity::Stockpile(Some(res))) = self.field.get(pos) {
+				available_resources.add_resource(res);
+			}
+		}
+		if available_resources.can_afford(cost) {
+			for res in cost.to_vec() {
+				self.field.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
+			}
+			return true;
+		}
+		false
+	}
+	
+	
+	fn move_destination(&self, from: Pos, to: Pos) -> Option<Pos> {
+		if self.field.keep_location(from) != self.field.keep_location(to) {
+			return None;
+		}
+		match self.field.get(to) {
+			Some(Entity::Road) => self.field.cross_pos(to),
+			Some(_) => None,
+			None => Some(to)
+		}
+	}
+	
+	fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
+		self.field.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
 	}
 }
 

@@ -19,6 +19,7 @@ pub enum Entity {
 	
 	// Units
 	Raider,
+	Warrior,
 	
 	// Buildings
 	Farm,
@@ -55,6 +56,7 @@ impl Entity {
 		match self {
 			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true},
 			Self::Raider => unit,
+			Self::Warrior => unit,
 			Self::Farm => building,
 			Self::Woodcutter => building,
 // 			Self::Guardpost => EntityProperties{removable: true},
@@ -76,6 +78,7 @@ impl fmt::Display for Entity {
 		write!(f, "{}", match self {
 			Self::Keep(user) => format!("keep:{}", user.0),
 			Self::Raider => "raider".to_string(),
+			Self::Warrior => "warrior".to_string(),
 			Self::Farm => "farm".to_string(),
 			Self::Woodcutter => "woodcutter".to_string(),
 			Self::Quarry => "quarry".to_string(),
@@ -102,6 +105,7 @@ impl FromStr for Entity {
 		Ok(match (typ, arg) {
 			("keep", Some(user)) => Self::Keep(UserId(user.to_string())),
 			("raider", None) => Self::Raider,
+			("warrior", None) => Self::Warrior,
 			("farm", None) => Self::Farm,
 			("woodcutter", None) => Self::Woodcutter,
 			("quarry", None) => Self::Quarry,

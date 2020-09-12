@@ -127,7 +127,7 @@ impl World {
 			let mut heads: Vec<(UserId, Command)> = command_iterators
 				.iter_mut()
 				.filter_map(|(user, it)| Some((user.clone(), it.next()?)))
-				.map(|(user, command)| (user.clone(), command.clone()))
+				.map(|(user, command)| (user, command.clone()))
 				.collect();
 			if heads.is_empty(){
 				break;
@@ -248,7 +248,7 @@ impl World {
 						self.field.add_resource(command.pos, Resource::Food);
 					}
 					Entity::Lair => {
-						if self.field.pay(command.pos, &ResourceCount::from_vec(&vec![Resource::Food, Resource::Food, Resource::Food])) {
+						if self.field.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
 							self.field.change_tile(command.pos, None, Some(Entity::Raider));
 						}
 					}

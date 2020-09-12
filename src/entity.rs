@@ -81,7 +81,7 @@ impl fmt::Display for Entity {
 			Self::Quarry => "quarry".to_string(),
 			Self::Lair => "lair".to_string(),
 			Self::Stockpile(Some(res)) => format!("stockpile:{}", res),
-			Self::Stockpile(None) => format!("stockpile"),
+			Self::Stockpile(None) => "stockpile".to_string(),
 			Self::Construction(building) => format!("construction:{}", building),
 			Self::Road => "road".to_string(),
 			Self::Forest => "forest".to_string(),

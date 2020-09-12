@@ -43,7 +43,7 @@ impl ResourceCount {
 				return false;
 			}
 		}
-		return true;
+		true
 	}
 	
 	pub fn to_vec(&self) -> Vec<Resource> {

@@ -1,7 +1,7 @@
 
 
 pub fn partition(s: &str) -> (String, String) {
-	let mut parts: Vec<String> = s.splitn(2, ' ').into_iter().map(String::from).collect();
+	let mut parts: Vec<String> = s.splitn(2, ' ').map(String::from).collect();
 	while parts.len() < 2 {
 		parts.push("".to_string())
 	}
@@ -9,7 +9,7 @@ pub fn partition(s: &str) -> (String, String) {
 }
 
 pub fn partition_by(s: &str, pat: &str) -> (String, String) {
-	let mut parts: Vec<String> = s.splitn(2, pat).into_iter().map(String::from).collect();
+	let mut parts: Vec<String> = s.splitn(2, pat).map(String::from).collect();
 	while parts.len() < 2 {
 		parts.push("".to_string())
 	}

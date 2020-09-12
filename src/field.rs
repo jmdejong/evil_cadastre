@@ -62,7 +62,7 @@ impl Field {
 	
 	pub fn plot_owner(&self, pos: Pos) -> Option<UserId> {
 		match self.get(self.keep_location(pos)){
-			Some(Entity::Keep(owner)) => Some(owner.clone()),
+			Some(Entity::Keep(owner)) => Some(owner),
 			Some(_) => {panic!("plot without keep: {:?}", pos)},
 			None => None
 		}
@@ -208,7 +208,7 @@ impl Field {
 				return true;
 			}
 		}
-		return false;
+		false
 	}
 }
 

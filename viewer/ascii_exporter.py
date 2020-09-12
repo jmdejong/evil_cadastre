@@ -4,7 +4,7 @@ import sys
 import string
 
 mapping = {
-	"keep": 'K',
+	"keep": '@',
 	"constuction": ":",
 	"road": "/",
 	"stockpile": "_",
@@ -13,11 +13,15 @@ mapping = {
 	"stockpile:food": "%",
 	"stockpile:iron": "-",
 	"woodcutter": "W",
-	"lair": "L",
 	"farm": "F",
+	"quarry": "Q",
+	"lair": "L",
+	"barracks": "B",
 	"raider": "r",
+	"warrior": "w",
 	"forest": "%",
 	"swamp": "~",
+	"rock": "^",
 	None: " "
 }
 

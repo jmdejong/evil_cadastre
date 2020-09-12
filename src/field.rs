@@ -8,7 +8,6 @@ use crate::{
 	Size,
 	locations::Direction,
 	entity::Entity,
-	resources::{Resource, ResourceCount},
 	UserId,
 	utils::{partition, partition_by},
 	errors::ParseError,
@@ -69,16 +68,10 @@ impl Field {
 	}
 	
 	pub fn clear_tile(&mut self, pos: Pos) {
-		if pos == self.keep_location(pos) {
-			return;
-		}
 		self.tiles.remove(&pos);
 	}
 	
 	pub fn set_tile(&mut self, pos: Pos, ent: Entity) {
-		if pos == self.keep_location(pos) {
-			return;
-		}
 		self.tiles.insert(pos, ent);
 	}
 	
@@ -105,21 +98,11 @@ impl Field {
 		positions
 	}
 	
-	pub fn available_resources(&self, source_pos: Pos) -> ResourceCount {
-		let mut resources = ResourceCount::default();
-		for pos in self.tiles_in_plot(source_pos){
-			if let Some(Entity::Stockpile(Some(res))) = self.get(pos) {
-				 resources.add_resource(res);
-			}
-		}
-		resources
-	}
-	
 	pub fn find_all(&self, source_pos: Pos, ent: Option<Entity>) -> Vec<Pos> {
 		self.tiles_in_plot(source_pos).into_iter().filter(|pos| self.get(*pos) == ent).collect()
 	}
 	
-	pub fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
+	fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
 		self.find_all(source_pos, ent).into_iter().next()
 	}
 	
@@ -132,12 +115,8 @@ impl Field {
 		}
 	}
 	
-	pub fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
-		self.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
-	}
 	
-	
-	pub fn neighbour_lane(&mut self, mut pos: Pos, dir: Direction) -> Vec<Pos> {
+	pub fn neighbour_lane(&self, mut pos: Pos, dir: Direction) -> Vec<Pos> {
 		let mut lane = Vec::new();
 		let dt = dir.to_pos();
 		let neighbour = pos / self.plot_size + dt;
@@ -149,16 +128,6 @@ impl Field {
 			pos = pos + dt;
 		}
 		lane
-	}
-	
-	pub fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
-		if self.available_resources(pos).can_afford(cost) {
-			for res in cost.to_vec() {
-				self.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
-			}
-			return true;
-		}
-		false
 	}
 	
 	pub fn list_keeps(&self) -> Vec<Pos> {

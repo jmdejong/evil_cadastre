@@ -78,45 +78,6 @@ impl World {
 	}
 	
 	fn order_commands(commands: &[(UserId, Vec<Command>)]) -> Vec<(UserId, Command)> {
-// 		let mut build_commands = Vec::new();
-// 		let mut move_commands = Vec::new();
-// 		let mut attack_commands = Vec::new();
-// 		let mut remove_commands = Vec::new();
-// 		let mut use_commands = Vec::new();
-// 		let mut claim_commands = Vec::new();
-// 		for (user, command_list) in commands {
-// 			for command in command_list {
-// 				match command.action {
-// 					Action::Build(_) => {
-// 						build_commands.push((user, command));
-// 					}
-// 					Action::Move(_) => {
-// 						move_commands.push((user, command));
-// 					}
-// 					Action::Attack(_) => {
-// 						attack_commands.push((user, command));
-// 					}
-// 					Action::Use => {
-// 						use_commands.push((user, command));
-// 					}
-// 					Action::Remove => {
-// 						remove_commands.push((user, command));
-// 					}
-// 					Action::Claim => {
-// 						claim_commands.push((user, command));
-// 					}
-// 				}
-// 			}
-// 		}
-// 		let mut ordered_commands = Vec::new();
-// 		ordered_commands.append(&mut claim_commands);
-// 		ordered_commands.append(&mut attack_commands);
-// 		ordered_commands.append(&mut use_commands);
-// 		ordered_commands.append(&mut build_commands);
-// 		ordered_commands.append(&mut move_commands);
-// 		ordered_commands.append(&mut remove_commands);
-// 		
-// 		ordered_commands.into_iter().map(|(u, c)|(u.clone(), c.clone())).collect()
 		let mut command_iterators = Vec::new();
 		for (user, comms) in commands {
 			command_iterators.push((user.clone(), comms.iter()));
@@ -138,6 +99,23 @@ impl World {
 			}
 		}
 		ordered_commands
+	}
+	
+	
+	fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
+		let mut available_resources = ResourceCount::default();
+		for pos in self.field.tiles_in_plot(pos){
+			if let Some(Entity::Stockpile(Some(res))) = self.field.get(pos) {
+				available_resources.add_resource(res);
+			}
+		}
+		if available_resources.can_afford(cost) {
+			for res in cost.to_vec() {
+				self.field.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
+			}
+			return true;
+		}
+		false
 	}
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
@@ -163,6 +141,10 @@ impl World {
 			Some(_) => None,
 			None => Some(to)
 		}
+	}
+	
+	pub fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
+		self.field.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
 	}
 	
 	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData, used_tiles: &mut HashSet<Pos>) {
@@ -193,7 +175,7 @@ impl World {
 					return
 				}
 				let (cost, ent) = building.cost_result();
-				if self.field.pay(command.pos, &cost){
+				if self.pay(command.pos, &cost){
 					self.field.set_tile(command.pos, ent);
 				}
 			}
@@ -242,13 +224,13 @@ impl World {
 			(Action::Use, Some(ent)) => {
 				match ent {
 					Entity::Woodcutter => {
-						self.field.add_resource(command.pos, Resource::Wood);
+						self.add_resource(command.pos, Resource::Wood);
 					}
 					Entity::Farm => {
-						self.field.add_resource(command.pos, Resource::Food);
+						self.add_resource(command.pos, Resource::Food);
 					}
 					Entity::Lair => {
-						if self.field.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
+						if self.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
 							self.field.change_tile(command.pos, None, Some(Entity::Raider));
 						}
 					}

@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::io::Read;
 use std::str::FromStr;
 
-extern crate structopt;
 use structopt::StructOpt;
 
 use crate::{
@@ -94,5 +93,219 @@ pub fn read_all_commands(input: &HomeScraper) -> Vec<(UserId, Vec<Command>)>{
 		).collect();
 		Some((userid, user_commands))
 	}).collect()
+}
+
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::str::FromStr;
+	use crate::entity::Entity;
+	
+	macro_rules! tileis {
+			($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos::new($x, $y)), $val)}
+	}
+	
+	fn parse_commands(u: &str, c: &[&str]) -> (UserId, Vec<Command>) {
+		(UserId(u.to_string()), c.iter().map(|s| Command::from_str(s).unwrap()).collect())
+	}
+	
+	#[test]
+	fn test_simple_commands() {
+		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10 /").unwrap()};
+		let (user, commands) = parse_commands("user", &[
+			"2,1 build stockpile",
+			"15,2 build woodcutter",
+			"6,2 build woodcutter",
+			"6,3 build woodcutter",
+			"0,0 claim",
+			"11,1 claim",
+			"11,2 build stockpile",
+			"6,2 build stockpile",
+			"8,0 build stockpile",
+			"8,1 build stockpile",
+			"8,2 build stockpile",
+			"8,3 build stockpile",
+			"8,4 build stockpile",
+			"8,5 build stockpile"
+		]);
+		world.update(&vec![(user.clone(), commands)]);
+		assert_eq!(world.field.plot_owner(Pos::new(0,0)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos::new(9,9)), Some(user.clone()));
+		assert_eq!(world.field.plot_owner(Pos::new(11,11)), None);
+		assert_eq!(world.field.plot_owner(Pos::new(1,11)), None);
+		assert_eq!(world.field.plot_owner(Pos::new(11,1)), None);
+		tileis!(world, 2,1, None);//Some(Entity::Stockpile(None)));
+		tileis!(world, 15,2, None);
+		tileis!(world, 6,2, Some(Entity::Stockpile(None)));
+		tileis!(world, 6,3, None);
+		tileis!(world, 11,2, None);
+		tileis!(world, 8,0, Some(Entity::Stockpile(None)));
+		tileis!(world, 8,1, Some(Entity::Stockpile(None)));
+		tileis!(world, 8,2, None);
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			6,2 stockpile;
+			8,0 stockpile;
+			8,1 stockpile;"
+		).unwrap());
+	}
+	
+	#[test]
+	fn test_woodcutting(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			0,5 woodcutter;
+			1,5 stockpile;
+			2,5 stockpile;
+			0,2 stockpile;
+			9,5 woodcutter;
+			10,5 stockpile;"
+		).unwrap()};
+		let (user, commands) = parse_commands("user", &[
+			"0,5 use",
+			"9,5 use"
+		]);
+		world.update(&vec![(user, commands)]);
+		
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			0,5 woodcutter;
+			1,5 stockpile:wood;
+			2,5 stockpile:wood;
+			0,2 stockpile;
+			9,5 woodcutter;
+			10,5 stockpile;"
+		).unwrap());
+	}
+	
+	#[test]
+	fn test_attack(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			6,6 lair;
+			1,9 raider;
+			3,3 woodcutter;
+			3,7 raider;
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap()};
+		world.update(&vec![
+			parse_commands("user", &[
+				"1,9 attack south",
+				"11,6 attack west"
+			]),
+			parse_commands("other", &[
+				"3,17 attack north",
+			])
+		]);
+		
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			6,6 lair;
+			1,9 raider;
+			3,3 woodcutter;
+			3,7 raider;
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap());
+	}
+	
+	
+	#[test]
+	fn test_move(){
+		let mut world = World {field: Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			1,1 raider;
+			1,2 raider;
+			1,3 raider;
+			1,4 raider;
+			1,5 raider;
+			1,6 raider;
+			1,7 raider;
+			1,8 raider;
+			1,9 raider;
+			2,1 raider;
+			7,7 stockpile;
+			9,9 road;
+			6,6 road;
+			2,9 road;
+			9,2 road;
+			0,1 road;
+			1,0 road;
+			
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap()};
+		world.update(&vec![
+			parse_commands("user", &[
+				"1,1 move 0,0",
+				"1,2 move 0,0",
+				"1,3 move 7,7",
+				"1,4 move 5,5",
+				
+				"1,5 move 6,6",
+				"1,6 move 9,9",
+				"1,7 move 9,2",
+				"1,8 move 2,9",
+				"1,0 move 1,0",
+				"2,1 move 19,9",
+			]),
+		]);
+		assert_eq!(world.field, Field::from_str(
+			"size:5,5 plot_size:10,10 /
+			5,5 keep:user;
+			0,0 raider;
+			1,2 raider;
+			1,3 raider;
+			1,4 raider;
+			1,5 raider;
+			1,6 raider;
+			10,2 raider;
+			1,8 raider;
+			1,9 raider;
+			2,1 raider;
+			7,7 stockpile;
+			9,9 road;
+			6,6 road;
+			2,9 road;
+			9,2 road;
+			0,1 road;
+			1,0 road;
+			
+			
+			15,4 keep:user;
+			11,6 raider;
+			
+			4,15 keep:other;
+			1,13 farm;
+			3,17 raider;
+			3,16 farm;"
+		).unwrap());
+	}
 }
 

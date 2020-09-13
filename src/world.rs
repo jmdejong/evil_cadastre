@@ -1,5 +1,5 @@
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 
 use crate::{
 	field::Field,
@@ -8,30 +8,15 @@ use crate::{
 	entity::Entity,
 	resources::{Resource, ResourceCount},
 	buildings::BuildingType,
+	rules,
 	utils,
 	Pos
 };
 
 pub struct World {
-	field: Field
+	pub field: Field
 }
 
-#[derive(Debug, Clone)]
-pub struct UserData {
-	pub keeps: Vec<Pos>,
-	pub has_woodcutter: bool,
-	pub ap_left: i32
-}
-
-impl UserData {
-	pub fn new() -> Self {
-		Self {
-			keeps: Vec::new(),
-			has_woodcutter: false,
-			ap_left: 10
-		}
-	}
-}
 
 impl World {
 	
@@ -61,17 +46,6 @@ impl World {
 		Self{field}
 	}
 	
-	fn calculate_user_data(&self) -> HashMap<UserId, UserData> {
-		let mut data = HashMap::new();
-		for pos in self.field.list_keeps() {
-			if let Some(Entity::Keep(userid)) = self.field.get(pos) {
-					let entry = data.entry(userid.clone()).or_insert_with(UserData::new);
-				entry.keeps.push(pos);
-			}
-		}
-		data
-	}
-	
 	fn order_commands(commands: &[(UserId, Vec<Command>)]) -> Vec<Vec<(UserId, Command)>> {
 		let mut command_iterators = Vec::new();
 		for (user, comms) in commands {
@@ -93,17 +67,14 @@ impl World {
 	}
 	
 	pub fn update(&mut self, commands: &[(UserId, Vec<Command>)]){
-		let mut user_data = self.calculate_user_data();
 		let mut used_tiles = HashSet::new();
 		let ordered = Self::order_commands(&commands.iter().map(|(user, commands)| {
-			let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
-			(user.clone(), utils::truncated(commands, data.ap_left as usize))
+			(user.clone(), utils::truncated(commands, 10))
 		}).collect::<Vec<(UserId, Vec<Command>)>>());
 		for command_round in ordered {
 			let mut destroyed = Vec::new();
 			for (user, command) in command_round {
-				let data = user_data.entry(user.clone()).or_insert_with(UserData::new);
-				self.run_command(&user, &command, data, &mut used_tiles, &mut destroyed);
+				self.run_command(&user, &command, &mut used_tiles, &mut destroyed);
 			}
 			for tile in destroyed {
 				self.field.clear_tile(tile);
@@ -111,17 +82,14 @@ impl World {
 		}
 	}
 	
-	pub fn run_command(&mut self, user: &UserId, command: &Command, user_data: &mut UserData, used_tiles: &mut HashSet<Pos>, destroyed: &mut Vec<Pos>) {
+	pub fn run_command(&mut self, user: &UserId, command: &Command, used_tiles: &mut HashSet<Pos>, destroyed: &mut Vec<Pos>) {
 		
 		if used_tiles.contains(&command.pos){
 			return;
 		}
 		
-		if command.action == Action::Claim && user_data.keeps.is_empty() {
-			if let Some(pos) = self.field.claim_first_keep(command.pos, user.clone()) {
-				user_data.keeps.push(pos);
-				used_tiles.insert(command.pos);
-			}
+		if command.action == Action::Claim && !self.field.list_keeps().iter().any(|p| self.field.get(*p) == Some(Entity::Keep(user.clone()))) {
+			rules::claim_first_keep(&mut self.field, command.pos, user.clone());
 		}
 		
 		if self.field.plot_owner(command.pos).as_ref() != Some(user) {
@@ -132,14 +100,21 @@ impl World {
 		
 		match (command.action.clone(), self.field.get(command.pos)) {
 			(Action::Build(building), None) => {
-				if building == BuildingType::Road && self.field.across_border(command.pos) == None {
+				if (
+						building == BuildingType::Road ||
+						building == BuildingType::Tradepost ||
+						building == BuildingType::Scoutpost
+						) && self.field.across_border(command.pos) == None {
 					return;
 				}
 				if building == BuildingType::Woodcutter && !self.field.neighbours(command.pos, Some(Entity::Forest)){
-					return
+					return;
+				}
+				if building == BuildingType::Quarry && !self.field.neighbours(command.pos, Some(Entity::Rock)){
+					return;
 				}
 				let (cost, ent) = building.cost_result();
-				if self.pay(command.pos, &cost){
+				if rules::pay(&mut self.field, command.pos, &cost){
 					self.field.set_tile(command.pos, ent);
 				}
 			}
@@ -148,10 +123,17 @@ impl World {
 				if used_tiles.contains(&target) {
 					return;
 				}
-				if let Some(pos) = self.move_destination(command.pos, target) {
-					if ent == Entity::Raider || ent == Entity::Warrior {
+				if ent == Entity::Raider || ent == Entity::Warrior {
+					if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
 						self.field.clear_tile(command.pos);
 						self.field.set_tile(pos, ent);
+						used_tiles.insert(pos);
+						used_tiles.insert(target);
+					}
+				} else if let Entity::Stockpile(Some(res)) = ent {
+					if let Some(pos) = rules::move_resource_destination(&self.field, command.pos, target) {
+						self.field.set_tile(command.pos, Entity::Stockpile(None));
+						self.field.set_tile(pos, Entity::Stockpile(Some(res)));
 						used_tiles.insert(pos);
 						used_tiles.insert(target);
 					}
@@ -195,23 +177,46 @@ impl World {
 			(Action::Use, Some(ent)) => {
 				match ent {
 					Entity::Woodcutter => {
-						self.add_resource(command.pos, Resource::Wood);
+						rules::add_resource(&mut self.field, command.pos, Resource::Wood);
+					}
+					Entity::Quarry => {
+						rules::add_resource(&mut self.field, command.pos, Resource::Wood);
 					}
 					Entity::Farm => {
-						self.add_resource(command.pos, Resource::Food);
+						rules::add_resource(&mut self.field, command.pos, Resource::Food);
 					}
 					Entity::Lair => {
-						if self.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
-							self.field.change_tile(command.pos, None, Some(Entity::Raider));
+						if rules::pay(&mut self.field, command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food])) {
+							if let Some(pos) = self.field.change_tile(command.pos, None, Some(Entity::Raider)) {
+								used_tiles.insert(pos);
+							}
 						}
 					}
 					Entity::Barracks => {
-						if self.pay(command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Wood, Resource::Stone])) {
+						if rules::pay(&mut self.field, command.pos, &ResourceCount::from_vec(&[Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Wood, Resource::Stone])) {
 							// todo: will require iron later
-							self.field.change_tile(command.pos, None, Some(Entity::Warrior));
+							if let Some(pos) = self.field.change_tile(command.pos, None, Some(Entity::Warrior)) {
+								used_tiles.insert(pos);
+							}
 						}
 					}
-					_ => ()
+					Entity::Scoutpost => {
+						if let Some(pos) = self.field.across_border(command.pos) {
+							if self.field.plot_owner(command.pos) == self.field.plot_owner(pos) {
+								return;
+							}
+							if self.field.find(pos, Some(Entity::Warrior)).is_some() || self.field.find(pos, Some(Entity::Raider)).is_some() {
+								return;
+							}
+							if rules::pay(&mut self.field, command.pos, &ResourceCount::from_vec(&[
+									Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood,
+									Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Food,
+									Resource::Stone, Resource::Stone, Resource::Stone, Resource::Stone, Resource::Stone])) {
+								self.field.set_tile(self.field.keep_location(pos), Entity::Keep(user.clone()));
+							}
+						}
+					}
+					_ => {}
 				}
 			}
 			
@@ -228,250 +233,5 @@ impl World {
 		self.field.to_string()
 	}
 	
-	
-	
-	
-	fn pay(&mut self, pos: Pos, cost: &ResourceCount) -> bool {
-		let mut available_resources = ResourceCount::default();
-		for pos in self.field.tiles_in_plot(pos){
-			if let Some(Entity::Stockpile(Some(res))) = self.field.get(pos) {
-				available_resources.add_resource(res);
-			}
-		}
-		if available_resources.can_afford(cost) {
-			for res in cost.to_vec() {
-				self.field.change_tile(pos, Some(Entity::Stockpile(Some(res))), Some(Entity::Stockpile(None)));
-			}
-			return true;
-		}
-		false
-	}
-	
-	
-	fn move_destination(&self, from: Pos, to: Pos) -> Option<Pos> {
-		if self.field.keep_location(from) != self.field.keep_location(to) {
-			return None;
-		}
-		match self.field.get(to) {
-			Some(Entity::Road) => self.field.cross_pos(to),
-			Some(_) => None,
-			None => Some(to)
-		}
-	}
-	
-	fn add_resource(&mut self, pos: Pos, res: Resource) -> bool {
-		self.field.change_tile(pos, Some(Entity::Stockpile(None)), Some(Entity::Stockpile(Some(res))))
-	}
 }
 
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use std::str::FromStr;
-	
-	macro_rules! tileis {
-			($world: expr, $x: expr, $y: expr, $val: expr) => {assert_eq!($world.field.get(Pos::new($x, $y)), $val)}
-	}
-	
-	fn parse_commands(u: &str, c: &[&str]) -> (UserId, Vec<Command>) {
-		(UserId(u.to_string()), c.iter().map(|s| Command::from_str(s).unwrap()).collect())
-	}
-	
-	#[test]
-	fn test_simple_commands() {
-		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10 /").unwrap()};
-		let (user, commands) = parse_commands("user", &[
-			"2,1 build stockpile",
-			"15,2 build woodcutter",
-			"6,2 build woodcutter",
-			"6,3 build woodcutter",
-			"0,0 claim",
-			"11,1 claim",
-			"11,2 build stockpile",
-			"6,2 build stockpile",
-			"8,0 build stockpile",
-			"8,1 build stockpile",
-			"8,2 build stockpile",
-			"8,3 build stockpile",
-			"8,4 build stockpile",
-			"8,5 build stockpile"
-		]);
-		world.update(&vec![(user.clone(), commands)]);
-		assert_eq!(world.field.plot_owner(Pos::new(0,0)), Some(user.clone()));
-		assert_eq!(world.field.plot_owner(Pos::new(9,9)), Some(user.clone()));
-		assert_eq!(world.field.plot_owner(Pos::new(11,11)), None);
-		assert_eq!(world.field.plot_owner(Pos::new(1,11)), None);
-		assert_eq!(world.field.plot_owner(Pos::new(11,1)), None);
-		tileis!(world, 2,1, None);//Some(Entity::Stockpile(None)));
-		tileis!(world, 15,2, None);
-		tileis!(world, 6,2, Some(Entity::Stockpile(None)));
-		tileis!(world, 6,3, None);
-		tileis!(world, 11,2, None);
-		tileis!(world, 8,0, Some(Entity::Stockpile(None)));
-		tileis!(world, 8,1, Some(Entity::Stockpile(None)));
-		tileis!(world, 8,2, None);
-		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			6,2 stockpile;
-			8,0 stockpile;
-			8,1 stockpile;"
-		).unwrap());
-	}
-	
-	#[test]
-	fn test_woodcutting(){
-		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			0,5 woodcutter;
-			1,5 stockpile;
-			2,5 stockpile;
-			0,2 stockpile;
-			9,5 woodcutter;
-			10,5 stockpile;"
-		).unwrap()};
-		let (user, commands) = parse_commands("user", &[
-			"0,5 use",
-			"9,5 use"
-		]);
-		world.update(&vec![(user, commands)]);
-		
-		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			0,5 woodcutter;
-			1,5 stockpile:wood;
-			2,5 stockpile:wood;
-			0,2 stockpile;
-			9,5 woodcutter;
-			10,5 stockpile;"
-		).unwrap());
-	}
-	
-	#[test]
-	fn test_attack(){
-		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			6,6 lair;
-			1,9 raider;
-			3,3 woodcutter;
-			3,7 raider;
-			
-			15,4 keep:user;
-			11,6 raider;
-			
-			4,15 keep:other;
-			1,13 farm;
-			3,17 raider;
-			3,16 farm;"
-		).unwrap()};
-		world.update(&vec![
-			parse_commands("user", &[
-				"1,9 attack south",
-				"11,6 attack west"
-			]),
-			parse_commands("other", &[
-				"3,17 attack north",
-			])
-		]);
-		
-		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			6,6 lair;
-			1,9 raider;
-			3,3 woodcutter;
-			3,7 raider;
-			
-			15,4 keep:user;
-			11,6 raider;
-			
-			4,15 keep:other;
-			3,17 raider;
-			3,16 farm;"
-		).unwrap());
-	}
-	
-	
-	#[test]
-	fn test_move(){
-		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			1,1 raider;
-			1,2 raider;
-			1,3 raider;
-			1,4 raider;
-			1,5 raider;
-			1,6 raider;
-			1,7 raider;
-			1,8 raider;
-			1,9 raider;
-			2,1 raider;
-			7,7 stockpile;
-			9,9 road;
-			6,6 road;
-			2,9 road;
-			9,2 road;
-			0,1 road;
-			1,0 road;
-			
-			
-			15,4 keep:user;
-			11,6 raider;
-			
-			4,15 keep:other;
-			1,13 farm;
-			3,17 raider;
-			3,16 farm;"
-		).unwrap()};
-		world.update(&vec![
-			parse_commands("user", &[
-				"1,1 move 0,0",
-				"1,2 move 0,0",
-				"1,3 move 7,7",
-				"1,4 move 5,5",
-				
-				"1,5 move 6,6",
-				"1,6 move 9,9",
-				"1,7 move 9,2",
-				"1,8 move 2,9",
-				"1,0 move 1,0",
-				"2,1 move 19,9",
-			]),
-		]);
-		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
-			5,5 keep:user;
-			0,0 raider;
-			1,2 raider;
-			1,3 raider;
-			1,4 raider;
-			1,5 raider;
-			1,6 raider;
-			10,2 raider;
-			1,8 raider;
-			1,9 raider;
-			2,1 raider;
-			7,7 stockpile;
-			9,9 road;
-			6,6 road;
-			2,9 road;
-			9,2 road;
-			0,1 road;
-			1,0 road;
-			
-			
-			15,4 keep:user;
-			11,6 raider;
-			
-			4,15 keep:other;
-			1,13 farm;
-			3,17 raider;
-			3,16 farm;"
-		).unwrap());
-	}
-}

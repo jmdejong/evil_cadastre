@@ -27,34 +27,6 @@ impl Field {
 		Self {plot_size, size, tiles: HashMap::new()}
 	}
 	
-	
-	pub fn keep_location(&self, pos: Pos) -> Pos {
-		let plot = pos / self.plot_size;
-		let mut base = plot * self.plot_size + self.plot_size / 2;
-		if self.plot_size.x % 2 == 0 {
-			base.x -= plot.y%2;
-		}
-		if self.plot_size.y % 2 == 0 {
-			base.y -= plot.x%2;
-		}
-		base
-	}
-	
-	pub fn claim_first_keep(&mut self, source_pos: Pos, userid: UserId) -> Option<Pos> {
-		if !self.is_valid(source_pos){
-			return None;
-		}
-		let pos = self.keep_location(source_pos);
-		match self.get(pos) {
-			Some(Entity::Keep(_)) => None,
-			Some(_) => {panic!("plot without keep: {:?}", pos)}
-			None => {
-				self.tiles.insert(pos, Entity::Keep(userid));
-				Some(pos)
-			}
-		}
-	}
-	
 	pub fn get(&self, pos: Pos) -> Option<Entity> {
 		self.tiles.get(&pos).cloned()
 	}
@@ -82,6 +54,18 @@ impl Field {
 		}
 	}
 	
+	pub fn keep_location(&self, pos: Pos) -> Pos {
+		let plot = pos / self.plot_size;
+		let mut base = plot * self.plot_size + self.plot_size / 2;
+		if self.plot_size.x % 2 == 0 {
+			base.x -= plot.y%2;
+		}
+		if self.plot_size.y % 2 == 0 {
+			base.y -= plot.x%2;
+		}
+		base
+	}
+	
 	pub fn tiles_in_plot(&self, pos: Pos) -> Vec<Pos>{
 		let mut positions = Vec::new();
 		let plot = pos / self.plot_size;
@@ -102,16 +86,16 @@ impl Field {
 		self.tiles_in_plot(source_pos).into_iter().filter(|pos| self.get(*pos) == ent).collect()
 	}
 	
-	fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
+	pub fn find(&self, source_pos: Pos, ent: Option<Entity>) -> Option<Pos> {
 		self.find_all(source_pos, ent).into_iter().next()
 	}
 	
-	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> bool {
+	pub fn change_tile(&mut self, source_pos: Pos, from: Option<Entity>, to: Option<Entity>) -> Option<Pos> {
 		if let Some(pos) = self.find(source_pos, from){
 			self.set(pos, to);
-			true
+			Some(pos)
 		} else {
-			false
+			None
 		}
 	}
 	
@@ -124,7 +108,9 @@ impl Field {
 			pos = pos + dt;
 		}
 		while pos / self.plot_size == neighbour {
-			lane.push(pos);
+			if pos != self.keep_location(pos){
+				lane.push(pos);
+			}
 			pos = pos + dt;
 		}
 		lane

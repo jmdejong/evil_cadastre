@@ -1,4 +1,8 @@
 
+extern crate strum;
+extern crate strum_macros;
+extern crate structopt;
+extern crate chrono;
 mod input;
 mod locations;
 mod commands;
@@ -12,6 +16,7 @@ mod field;
 mod world;
 mod buildings;
 mod resources;
+mod rules;
 
 use crate::{
 	locations::{Pos, Size},

@@ -12,6 +12,12 @@ impl fmt::Display for ParseError {
 	}
 }
 
+impl std::convert::From<strum::ParseError> for ParseError {
+	fn from(error: strum::ParseError) -> Self {
+		Self{msg: error.to_string()}
+	}
+}
+
 #[macro_export]
 macro_rules! parse_err {
 	($($description:tt)*) => {crate::errors::ParseError{msg: format!($($description)*)}}

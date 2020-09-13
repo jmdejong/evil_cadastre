@@ -21,15 +21,18 @@ pub enum Entity {
 	Raider,
 	Warrior,
 	
-	// Buildings
+	// Production buildings
 	Farm,
 	Woodcutter,
-// 	GuardTower,
+	Quarry,
+	// Unit training buildings
 	Lair,
 	Barracks,
+	// Special buildings
 	Stockpile(Option<Resource>),
 	Road,
-	Quarry,
+	Tradepost,
+	Scoutpost,
 	
 	// Ambient
 	Forest,
@@ -60,13 +63,14 @@ impl Entity {
 			Self::Warrior => unit,
 			Self::Farm => building,
 			Self::Woodcutter => building,
-// 			Self::Guardpost => EntityProperties{removable: true},
 			Self::Quarry => building,
 			Self::Lair => building,
 			Self::Barracks => building,
 			Self::Stockpile(_) => building,
 			Self::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
 			Self::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Self::Tradepost => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
+			Self::Scoutpost => EntityProperties{removable: true, destructible: true, mortal: false, stopping: true},
 			Self::Forest => ambient,
 			Self::Swamp => ambient,
 			Self::Rock => ambient
@@ -90,6 +94,8 @@ impl fmt::Display for Entity {
 			Self::Stockpile(None) => "stockpile".to_string(),
 			Self::Construction(building) => format!("construction:{}", building),
 			Self::Road => "road".to_string(),
+			Self::Tradepost => "tradepost".to_string(),
+			Self::Scoutpost => "scoutpost".to_string(),
 			Self::Forest => "forest".to_string(),
 			Self::Swamp => "swamp".to_string(),
 			Self::Rock => "rock".to_string(),
@@ -118,6 +124,8 @@ impl FromStr for Entity {
 			("stockpile", Some(res)) => Self::Stockpile(Some(Resource::from_str(res)?)),
 			("construction", Some(building)) => Self::Construction(BuildingType::from_str(building)?),
 			("road", None) => Self::Road,
+			("tradepost", None) => Self::Tradepost,
+			("scoutpost", None) => Self::Scoutpost,
 			("forest", None) => Self::Forest,
 			("swamp", None) => Self::Swamp,
 			("rock", None) => Self::Rock,

@@ -171,7 +171,7 @@ impl Field {
 
 impl fmt::Display for Field {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "size:{} plot_size:{}/", self.size, self.plot_size)?;
+		write!(f, "size:{}; plot_size:{};;\n", self.size, self.plot_size)?;
 		for (pos, ent) in self.tiles.iter() {
 			write!(f, "{} {}; ", pos, ent)?;
 		}
@@ -183,15 +183,15 @@ impl FromStr for Field {
 	type Err = ParseError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let (meta, tiles) = partition_by(s, "/");
-		let meta_items = meta.split(' ');
+		let (meta, tiles) = partition_by(s, ";;");
+		let meta_items = meta.split(';');
 		let mut size = None;
 		let mut plot_size = None;
 		for meta_item in meta_items {
 			let (name, arg) = partition_by(meta_item, ":");
 			match name.trim() {
-				"size" => {size = Some(Pos::from_str(&arg)?)}
-				"plot_size" => {plot_size = Some(Pos::from_str(&arg)?)}
+				"size" => {size = Some(Pos::from_str(&arg.trim())?)}
+				"plot_size" => {plot_size = Some(Pos::from_str(&arg.trim())?)}
 				_ => {}
 			}
 		}

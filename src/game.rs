@@ -113,7 +113,7 @@ mod tests {
 	
 	#[test]
 	fn test_simple_commands() {
-		let mut world = World {field: Field::from_str("size:5,5 plot_size:10,10 /").unwrap()};
+		let mut world = World {field: Field::from_str("size:5,5; plot_size:10,10 ;;").unwrap()};
 		let (user, commands) = parse_commands("user", &[
 			"2,1 build stockpile",
 			"15,2 build woodcutter",
@@ -145,7 +145,7 @@ mod tests {
 		tileis!(world, 8,1, Some(Entity::Stockpile(None)));
 		tileis!(world, 8,2, None);
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			6,2 stockpile;
 			8,0 stockpile;
@@ -156,7 +156,7 @@ mod tests {
 	#[test]
 	fn test_woodcutting(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			0,5 woodcutter;
 			1,5 stockpile;
@@ -172,7 +172,7 @@ mod tests {
 		world.update(&vec![(user, commands)]);
 		
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			0,5 woodcutter;
 			1,5 stockpile:wood;
@@ -186,7 +186,7 @@ mod tests {
 	#[test]
 	fn test_attack(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			6,6 lair;
 			1,9 raider;
@@ -212,7 +212,7 @@ mod tests {
 		]);
 		
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			6,6 lair;
 			1,9 raider;
@@ -232,7 +232,7 @@ mod tests {
 	#[test]
 	fn test_move(){
 		let mut world = World {field: Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			1,1 raider;
 			1,2 raider;
@@ -277,7 +277,7 @@ mod tests {
 			]),
 		]);
 		assert_eq!(world.field, Field::from_str(
-			"size:5,5 plot_size:10,10 /
+			"size:5,5; plot_size:10,10 ;;
 			5,5 keep:user;
 			0,0 raider;
 			1,2 raider;

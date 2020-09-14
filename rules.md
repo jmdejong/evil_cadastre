@@ -3,6 +3,14 @@
 
 
 
+## Turn structure
+
+Each player can choose up to 10 actions per turn, in an order they choose.
+Every round of a turn each player has one action executed.
+Players can not use the same tile twice in one turn
+This means that a road can only move one unit per turn, a unit can only move or attack once per turn (and not a combination). a production building can only produce one result per turn etc.
+Attacks are performed only after the round, so if the attacked entity performs an action at the same time that action is still completed.
+
 # Reference
 
 ## Entities

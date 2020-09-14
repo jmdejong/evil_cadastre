@@ -123,7 +123,7 @@ impl World {
 				if used_tiles.contains(&target) {
 					return;
 				}
-				if ent == Entity::Raider || ent == Entity::Warrior {
+				if ent.properties.unit(){
 					if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
 						self.field.clear_tile(command.pos);
 						self.field.set_tile(pos, ent);
@@ -205,7 +205,7 @@ impl World {
 							if self.field.plot_owner(command.pos) == self.field.plot_owner(pos) {
 								return;
 							}
-							if self.field.find(pos, Some(Entity::Warrior)).is_some() || self.field.find(pos, Some(Entity::Raider)).is_some() {
+							if self.field.tiles_in_plot(pos).into_iter().filter_map(|p| self.field.get(p)).any(|ent| ent.properties().unit) {
 								return;
 							}
 							if rules::pay(&mut self.field, command.pos, &ResourceCount::from_vec(&[

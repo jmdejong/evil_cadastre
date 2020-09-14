@@ -45,7 +45,8 @@ pub struct EntityProperties {
 	pub removable: bool,
 	pub destructible: bool,
 	pub stopping: bool,
-	pub mortal: bool
+	pub mortal: bool,
+	pub unit: bool
 }
 
 
@@ -54,11 +55,12 @@ impl Entity {
 	
 	pub fn properties(&self) -> EntityProperties {
 	
-		let unit = EntityProperties{removable: false, destructible: false, mortal: true, stopping: true};
-		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true};
-		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false};
+		let unit = EntityProperties{removable: false, destructible: false, mortal: true, stopping: true, unit: true};
+		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true, unit: false};
+		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false, unit: false};
+		let small = EntityProperties{removable: true, destructible: true, mortal: false, stopping: false, unit: false},
 		match self {
-			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true},
+			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true, unit: false},
 			Self::Raider => unit,
 			Self::Warrior => unit,
 			Self::Farm => building,
@@ -67,10 +69,10 @@ impl Entity {
 			Self::Lair => building,
 			Self::Barracks => building,
 			Self::Stockpile(_) => building,
-			Self::Construction(_) => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Self::Road => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Self::Tradepost => EntityProperties{removable: true, destructible: true, mortal: false, stopping: false},
-			Self::Scoutpost => EntityProperties{removable: true, destructible: true, mortal: false, stopping: true},
+			Self::Construction(_) => small
+			Self::Road => small
+			Self::Tradepost => small,
+			Self::Scoutpost => building,
 			Self::Forest => ambient,
 			Self::Swamp => ambient,
 			Self::Rock => ambient

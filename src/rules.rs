@@ -15,14 +15,16 @@ pub fn claim_first_keep(field: &mut Field, source_pos: Pos, userid: UserId) -> O
 		return None;
 	}
 	let pos = field.keep_location(source_pos);
-	match field.get(pos) {
-		Some(Entity::Keep(_)) => None,
-		Some(_) => {panic!("plot without keep: {:?}", pos)}
-		None => {
-			field.set_tile(pos, Entity::Keep(userid));
-			Some(pos)
+	if field.get(pos).is_some() {
+		return None
+	}
+	for dir in Direction::directions() {
+		if let Some(Entity::Keep(_)) = field.get(field.keep_location(pos + dir.to_pos() * field.plot_size)) {
+			return None
 		}
 	}
+	field.set_tile(pos, Entity::Keep(userid));
+	Some(pos)
 }
 
 pub fn pay(field: &mut Field, pos: Pos, cost: &ResourceCount) -> bool {

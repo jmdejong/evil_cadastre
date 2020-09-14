@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
-	plot_size: Size,
+	pub plot_size: Size,
 	size: Size,
 	tiles: HashMap<Pos, Entity>
 }

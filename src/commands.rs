@@ -17,12 +17,12 @@ pub struct Command {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Action{
+	Claim,
 	Build(BuildingType),
 	Move(Pos),
 	Attack(Direction),
 	Remove,
 	Use,
-	Claim
 }
 
 

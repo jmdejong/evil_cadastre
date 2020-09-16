@@ -21,6 +21,7 @@ pub enum Entity {
 	// Units
 	Raider,
 	Warrior,
+	Ram,
 	
 	// Production buildings
 	Farm,
@@ -41,43 +42,54 @@ pub enum Entity {
 	Rock,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EntityProperties {
 	pub removable: bool,
 	pub destructible: bool,
 	pub stopping: bool,
 	pub mortal: bool,
-	pub unit: bool
+	pub movable: bool,
+	pub strong: bool,
+	pub defender: bool
 }
 
-
+macro_rules! props {
+	($($prop: ident),*) => {{
+		#[allow(unused_mut)]
+		let mut properties = EntityProperties::default();
+		$(
+			properties.$prop = true;
+		)*
+		properties
+	}}
+}
 
 impl Entity {
 	
 	pub fn properties(&self) -> EntityProperties {
 	
-		let unit = EntityProperties{removable: false, destructible: false, mortal: true, stopping: true, unit: true};
-		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true, unit: false};
-		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false, unit: false};
-		let small = EntityProperties{removable: true, destructible: true, mortal: false, stopping: false, unit: false};
+		let unit = props!(mortal, stopping, movable, defender);
+		let building = props!(removable, destructible, stopping);
+		let small = props!(removable, destructible);
 		match self {
-			Self::Capital(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true, unit: false},
-			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true, unit: false},
+			Self::Capital(_) => props!(destructible, strong, stopping),
+			Self::Keep(_) => props!(destructible, strong, stopping),
 			Self::Raider => unit,
 			Self::Warrior => unit,
+			Self::Ram => props!(removable, destructible, mortal, stopping),
 			Self::Farm => building,
 			Self::Woodcutter => building,
 			Self::Quarry => building,
 			Self::Lair => building,
 			Self::Barracks => building,
-			Self::Stockpile(_) => building,
+			Self::Stockpile(_) => props!(removable),
 			Self::Construction(_) => small,
 			Self::Road => small,
 			Self::Tradepost => small,
 			Self::Scoutpost => building,
-			Self::Forest => ambient,
-			Self::Swamp => ambient,
-			Self::Rock => ambient
+			Self::Forest => props!(),
+			Self::Swamp => props!(),
+			Self::Rock => props!()
 		}
 	}
 }
@@ -90,6 +102,7 @@ impl fmt::Display for Entity {
 			Self::Keep(user) => format!("keep:{}", user.0),
 			Self::Raider => "raider".to_string(),
 			Self::Warrior => "warrior".to_string(),
+			Self::Ram => "ram".to_string(),
 			Self::Farm => "farm".to_string(),
 			Self::Woodcutter => "woodcutter".to_string(),
 			Self::Quarry => "quarry".to_string(),
@@ -120,6 +133,7 @@ impl FromStr for Entity {
 			("keep", Some(user)) => Self::Keep(UserId(user.to_string())),
 			("raider", None) => Self::Raider,
 			("warrior", None) => Self::Warrior,
+			("ram", None) => Self::Ram,
 			("farm", None) => Self::Farm,
 			("woodcutter", None) => Self::Woodcutter,
 			("quarry", None) => Self::Quarry,
@@ -165,6 +179,7 @@ mod tests {
 			Keep(user(":e:v:i:l")),
 			Raider,
 			Warrior,
+			Ram,
 			Farm,
 			Woodcutter,
 			Quarry,

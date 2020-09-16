@@ -124,7 +124,7 @@ impl World {
 					return;
 				}
 				match ent {
-					Entity::Raider | Entity::Warrior => {
+					e if e.properties().movable => {
 						if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
 							self.field.switch_tiles(command.pos, pos);
 							used_tiles.insert(pos);
@@ -159,7 +159,7 @@ impl World {
 						for pos in lane {
 							if let Some(target) = self.field.get(pos) {
 								let props = target.properties();
-								if props.destructible {
+								if props.destructible && !props.strong {
 									destroyed.push(pos);
 								}
 								if props.stopping {
@@ -174,6 +174,19 @@ impl World {
 								let props = target.properties();
 								if props.mortal {
 									destroyed.push(pos);
+									break;
+								}
+							}
+						}
+					}
+					Entity::Ram => {
+						for pos in lane {
+							if let Some(target) = self.field.get(pos) {
+								let props = target.properties();
+								if props.destructible {
+									destroyed.push(pos);
+								}
+								if props.stopping {
 									break;
 								}
 							}
@@ -214,7 +227,7 @@ impl World {
 							if self.field.plot_owner(command.pos) == self.field.plot_owner(pos) {
 								return;
 							}
-							if self.field.tiles_in_plot(pos).into_iter().filter_map(|p| self.field.get(p)).any(|ent| ent.properties().unit) {
+							if self.field.tiles_in_plot(pos).into_iter().filter_map(|p| self.field.get(p)).any(|ent| ent.properties().defender) {
 								return;
 							}
 							if rules::pay(&mut self.field, command.pos, &ResourceCount::from_vec(&[

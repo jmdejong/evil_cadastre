@@ -23,7 +23,8 @@ pub enum BuildingType {
 	Barracks,
 	Road,
 	Tradepost,
-	Scoutpost
+	Scoutpost,
+	Ram,
 }
 
 use Resource::*;
@@ -41,6 +42,7 @@ impl BuildingType {
 			Self::Road => (vec![Wood, Stone], Entity::Road),
 			Self::Tradepost => (vec![Wood, Wood, Stone], Entity::Tradepost),
 			Self::Scoutpost => (vec![Wood, Wood, Wood, Wood, Wood, Stone], Entity::Scoutpost),
+			Self::Ram => (vec![Wood, Wood, Wood, Wood, Wood, Wood, Food], Entity::Ram),
 		};
 		(ResourceCount::from_vec(&cost), result)
 	}

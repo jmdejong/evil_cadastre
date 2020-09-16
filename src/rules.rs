@@ -20,11 +20,11 @@ pub fn claim_first_keep(field: &mut Field, source_pos: Pos, userid: UserId) -> O
 		return None
 	}
 	for dir in Direction::directions() {
-		if let Some(Entity::Capital(_)) = field.get(field.keep_location(pos + dir.to_pos() * field.plot_size)) {
+		if let Some(Entity::Keep(_)) = field.get(field.keep_location(pos + dir.to_pos() * field.plot_size)) {
 			return None
 		}
 	}
-	field.set_tile(pos, Entity::Keep(userid));
+	field.set_tile(pos, Entity::Capital(userid));
 	Some(pos)
 }
 

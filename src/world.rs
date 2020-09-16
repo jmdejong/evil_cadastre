@@ -88,7 +88,7 @@ impl World {
 			return;
 		}
 		
-		if command.action == Action::Claim && !self.field.list_keeps().iter().any(|p| self.field.get(*p) == Some(Entity::Keep(user.clone()))) {
+		if command.action == Action::Claim && !self.field.list_keeps().iter().any(|p| self.field.get(*p) == Some(Entity::Capital(user.clone()))) {
 			rules::claim_first_keep(&mut self.field, command.pos, user.clone());
 		}
 		

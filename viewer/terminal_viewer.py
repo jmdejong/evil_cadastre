@@ -30,6 +30,7 @@ layoutstring = """\
 		</hbox>
 		<hbox height="1">
 			<textbox width="6"> Tile: </textbox>
+			<textbox width="3" id="currenttile"></textbox>
 			<textbox id="viewed"></textbox>
 		</hbox>
 		<border style="reverse" char=" ">
@@ -53,8 +54,8 @@ remove = "r: Remove"
 build = "b: Build"
 
 mapping = {
-	"capital": Entity("＠", TextStyle(fg=15, bg=0), [move]),
-	"keep": Entity("＄"),
+	"capital": Entity("＠", TextStyle(fg=15, bg=0, bold=True), [move]),
+	"keep": Entity("＄", TextStyle(fg=15, bg=0)),
 	"constuction": Entity("::"),
 	"road": Entity("//", TextStyle(3,7), [remove]),
 	"tradepost": Entity("TT", TextStyle(3,7), [remove]),
@@ -73,14 +74,14 @@ mapping = {
 	"warrior": Entity("ｗ", actions=[attack, move]),
 	"ram": Entity("ａ", actions=[attack, remove]),
 	"forest": Entity("&&", TextStyle(fg=3, bg=2)),
-	"swamp": Entity("～", TextStyle(fg=10,bg=4)),
+	"swamp": Entity("～", TextStyle(fg=4,bg=6)),
 	"rock": Entity("^^", TextStyle(fg=7, bg=8)),
-	None: Entity("  ", actions=[build])
+	None: Entity(".,", TextStyle(2), actions=[build])
 }
 
 # ！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～
 
-base_style = TextStyle(fg=0, bg=10)
+base_style = TextStyle(fg=7, bg=0)
 
 def clamp(n, lower, upper):
 	return max(min(n, upper), lower)
@@ -109,6 +110,7 @@ class World:
 		layout.get("position").set_text(",".join(str(c) for c in self.cursor))
 		entdata = map_ent(self.field.get(*self.cursor), mapping)
 		layout.get("actions").set_text("\n".join(entdata.actions))
+		layout.get("currenttile").set_text(entdata.char, base_style.add(entdata.style))
 		layout.update()
 		
 	def update(self, key):

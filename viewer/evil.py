@@ -35,14 +35,14 @@ def to_fullwidth(c):
 	
 
 def map_ent(ent, charmap=mapping):
-	if ent in mapping:
+	if ent in charmap:
 		return charmap[ent]
 	elif ent.startswith("keep:"):
 		return charmap["keep"]
 	elif ent.startswith("capital:"):
 		return charmap["capital"]
 	elif ent.startswith("construction:"):
-		return charmap["constuction"]
+		return charmap["construction"]
 	else:
 		raise Exception("Unknown item: "+ent)
 

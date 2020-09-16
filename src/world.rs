@@ -123,20 +123,28 @@ impl World {
 				if used_tiles.contains(&target) {
 					return;
 				}
-				if ent.properties().unit {
-					if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
-						self.field.clear_tile(command.pos);
-						self.field.set_tile(pos, ent);
-						used_tiles.insert(pos);
-						used_tiles.insert(target);
+				match ent {
+					Entity::Raider | Entity::Warrior => {
+						if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
+							self.field.switch_tiles(command.pos, pos);
+							used_tiles.insert(pos);
+							used_tiles.insert(target);
+						}
 					}
-				} else if let Entity::Stockpile(Some(res)) = ent {
-					if let Some(pos) = rules::move_resource_destination(&self.field, command.pos, target) {
-						self.field.set_tile(command.pos, Entity::Stockpile(None));
-						self.field.set_tile(pos, Entity::Stockpile(Some(res)));
-						used_tiles.insert(pos);
-						used_tiles.insert(target);
+					Entity::Stockpile(Some(_res)) => {
+						if let Some(pos) = rules::move_resource_destination(&self.field, command.pos, target) {
+							self.field.switch_tiles(command.pos, pos);
+							used_tiles.insert(pos);
+							used_tiles.insert(target);
+						}
 					}
+					Entity::Capital(owner) if &owner == user => {
+						if self.field.get(target) == Some(Entity::Keep(user.clone())) {
+							self.field.switch_tiles(command.pos, target);
+							used_tiles.insert(target);
+						}
+					}
+					_ => {}
 				}
 			}
 			
@@ -166,6 +174,7 @@ impl World {
 								let props = target.properties();
 								if props.mortal {
 									destroyed.push(pos);
+									break;
 								}
 							}
 						}
@@ -222,21 +231,8 @@ impl World {
 				}
 			}
 			
-			(Action::Remove, Some(ent)) => {
-				if ent.properties().removable {
-					self.field.clear_tile(command.pos);
-				}
-			}
-			(Action::Capitalize, Some(Entity::Keep(owner))) => {
-				if &owner != user {
-					return;
-				}
-				for keep_pos in self.field.list_keeps() {
-					if self.field.get(keep_pos) == Some(Entity::Capital(user.clone())) {
-						self.field.set_tile(keep_pos, Entity::Keep(user.clone()));
-						self.field.set_tile(command.pos, Entity::Capital(user.clone()));
-					}
-				}
+			(Action::Remove, Some(ent)) if ent.properties().removable => {
+				self.field.clear_tile(command.pos);
 			}
 			_ => {}
 		}

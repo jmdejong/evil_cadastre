@@ -40,7 +40,7 @@ impl BuildingType {
 			Self::Barracks => (vec![Wood, Wood, Wood, Wood, Stone, Stone, Stone], Entity::Barracks),
 			Self::Road => (vec![Wood, Stone], Entity::Road),
 			Self::Tradepost => (vec![Wood, Wood, Stone], Entity::Tradepost),
-			Self::Scoutpost => (vec![Wood, Wood, Wood, Stone], Entity::Tradepost),
+			Self::Scoutpost => (vec![Wood, Wood, Wood, Wood, Wood, Stone], Entity::Scoutpost),
 		};
 		(ResourceCount::from_vec(&cost), result)
 	}
@@ -89,4 +89,20 @@ impl FromStr for BuildingType {
 // 		})
 // 	}
 // }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	
+	#[test]
+	fn test_serialisation(){
+		for building in BuildingType::iter(){
+			let a = building.to_string();
+			let b = BuildingType::from_str(&a).unwrap();
+			let c = b.to_string();
+			assert_eq!(building, b);
+			assert_eq!(a, c);
+		}
+	}
+}
 

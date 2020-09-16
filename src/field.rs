@@ -100,6 +100,11 @@ impl Field {
 		}
 	}
 	
+	pub fn switch_tiles(&mut self, a: Pos, b: Pos) {
+		let tmp = self.get(a);
+		self.set(a, self.get(b));
+		self.set(b, tmp);
+	}
 	
 	pub fn neighbour_lane(&self, mut pos: Pos, dir: Direction) -> Vec<Pos> {
 		let mut lane = Vec::new();

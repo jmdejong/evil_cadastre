@@ -112,11 +112,10 @@ impl FromStr for Entity {
 	type Err = ParseError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let l = s.to_lowercase();
-		let mut c = l.splitn(2, ':');
-		let typ = c.next().unwrap();
+		let mut c = s.splitn(2, ':');
+		let typ = c.next().unwrap().to_lowercase();
 		let arg = c.next();
-		Ok(match (typ, arg) {
+		Ok(match (typ.as_str(), arg) {
 			("capital", Some(user)) => Self::Capital(UserId(user.to_string())),
 			("keep", Some(user)) => Self::Keep(UserId(user.to_string())),
 			("raider", None) => Self::Raider,
@@ -125,7 +124,7 @@ impl FromStr for Entity {
 			("woodcutter", None) => Self::Woodcutter,
 			("quarry", None) => Self::Quarry,
 			("lair", None) => Self::Lair,
-			("Barracks", None) => Self::Barracks,
+			("barracks", None) => Self::Barracks,
 			("stockpile", None) => Self::Stockpile(None),
 			("stockpile", Some(res)) => Self::Stockpile(Some(Resource::from_str(res)?)),
 			("construction", Some(building)) => Self::Construction(BuildingType::from_str(building)?),
@@ -139,3 +138,59 @@ impl FromStr for Entity {
 		})
 	}
 }
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use super::Entity::*;
+	use Resource::*;
+	
+	fn user(name: &str) -> UserId {
+		UserId(name.to_string())
+	}
+	
+	#[test]
+	fn test_serialisation(){
+		
+		let entities = vec![
+			Capital(user("abc")),
+			Capital(user("")),
+			Capital(user("ABC")),
+			Capital(user("evil")),
+			Keep(user("abc")),
+			Keep(user("")),
+			Keep(user("ABC")),
+			Keep(user("evil")),
+			Keep(user(":e:v:i:l")),
+			Raider,
+			Warrior,
+			Farm,
+			Woodcutter,
+			Quarry,
+			Lair,
+			Barracks,
+			Stockpile(None),
+			Stockpile(Some(Wood)),
+			Stockpile(Some(Food)),
+			Stockpile(Some(Stone)),
+			Stockpile(Some(Iron)),
+			Construction(BuildingType::Barracks),
+			Road,
+			Tradepost,
+			Scoutpost,
+			Forest,
+			Swamp,
+			Rock,
+		];
+		
+		for ent in entities {
+			let a = ent.to_string();
+			let b = Entity::from_str(&a).unwrap();
+			let c = b.to_string();
+			assert_eq!(ent, b);
+			assert_eq!(a, c);
+		}
+	}
+}
+

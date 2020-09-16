@@ -13,6 +13,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Entity {
 	
+	Capital(UserId),
 	Keep(UserId),
 	
 	Construction(BuildingType),
@@ -58,8 +59,9 @@ impl Entity {
 		let unit = EntityProperties{removable: false, destructible: false, mortal: true, stopping: true, unit: true};
 		let building = EntityProperties{removable: true, destructible: true, mortal: false, stopping: true, unit: false};
 		let ambient = EntityProperties{removable: false, destructible: false, mortal: false, stopping: false, unit: false};
-		let small = EntityProperties{removable: true, destructible: true, mortal: false, stopping: false, unit: false},
+		let small = EntityProperties{removable: true, destructible: true, mortal: false, stopping: false, unit: false};
 		match self {
+			Self::Capital(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true, unit: false},
 			Self::Keep(_) => EntityProperties{removable: false, destructible: false, mortal: false, stopping: true, unit: false},
 			Self::Raider => unit,
 			Self::Warrior => unit,
@@ -69,8 +71,8 @@ impl Entity {
 			Self::Lair => building,
 			Self::Barracks => building,
 			Self::Stockpile(_) => building,
-			Self::Construction(_) => small
-			Self::Road => small
+			Self::Construction(_) => small,
+			Self::Road => small,
 			Self::Tradepost => small,
 			Self::Scoutpost => building,
 			Self::Forest => ambient,
@@ -84,6 +86,7 @@ impl Entity {
 impl fmt::Display for Entity {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", match self {
+			Self::Capital(user) => format!("capital:{}", user.0),
 			Self::Keep(user) => format!("keep:{}", user.0),
 			Self::Raider => "raider".to_string(),
 			Self::Warrior => "warrior".to_string(),
@@ -114,6 +117,7 @@ impl FromStr for Entity {
 		let typ = c.next().unwrap();
 		let arg = c.next();
 		Ok(match (typ, arg) {
+			("capital", Some(user)) => Self::Capital(UserId(user.to_string())),
 			("keep", Some(user)) => Self::Keep(UserId(user.to_string())),
 			("raider", None) => Self::Raider,
 			("warrior", None) => Self::Warrior,

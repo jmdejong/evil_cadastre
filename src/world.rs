@@ -123,7 +123,7 @@ impl World {
 				if used_tiles.contains(&target) {
 					return;
 				}
-				if ent.properties.unit(){
+				if ent.properties().unit {
 					if let Some(pos) = rules::move_unit_destination(&self.field, command.pos, target) {
 						self.field.clear_tile(command.pos);
 						self.field.set_tile(pos, ent);
@@ -212,6 +212,8 @@ impl World {
 									Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood, Resource::Wood,
 									Resource::Food, Resource::Food, Resource::Food, Resource::Food, Resource::Food,
 									Resource::Stone, Resource::Stone, Resource::Stone, Resource::Stone, Resource::Stone])) {
+								let keep = self.field.keep_location(pos);
+								rules::destroy_keep(&mut self.field, keep);
 								self.field.set_tile(self.field.keep_location(pos), Entity::Keep(user.clone()));
 							}
 						}
@@ -223,6 +225,17 @@ impl World {
 			(Action::Remove, Some(ent)) => {
 				if ent.properties().removable {
 					self.field.clear_tile(command.pos);
+				}
+			}
+			(Action::Capitalize, Some(Entity::Keep(owner))) => {
+				if &owner != user {
+					return;
+				}
+				for keep_pos in self.field.list_keeps() {
+					if self.field.get(keep_pos) == Some(Entity::Capital(user.clone())) {
+						self.field.set_tile(keep_pos, Entity::Keep(user.clone()));
+						self.field.set_tile(command.pos, Entity::Capital(user.clone()));
+					}
 				}
 			}
 			_ => {}

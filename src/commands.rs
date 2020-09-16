@@ -17,6 +17,7 @@ pub struct Command {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Action{
+	Capitalize,
 	Claim,
 	Build(BuildingType),
 	Move(Pos),
@@ -38,6 +39,7 @@ impl FromStr for Action {
 			"remove" => Self::Remove,
 			"use" => Self::Use,
 			"claim" => Self::Claim,
+			"capitalize" => Self::Capitalize,
 			_ => {return Err(parse_err!("Invalid action '{}'", commtype))}
 		})
 	}

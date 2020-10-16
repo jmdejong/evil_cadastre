@@ -1,10 +1,5 @@
 
 
-
-extern crate strum;
-extern crate strum_macros;
-extern crate structopt;
-extern crate chrono;
 pub mod input;
 pub mod locations;
 pub mod commands;
